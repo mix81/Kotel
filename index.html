@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heating Pro Elite v5.14</title>
+    <title>Heating Pro Elite v5.15</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0d1117">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
@@ -63,7 +68,6 @@
             border-radius: 12px; color: #fff; font-size: 16px; text-align: center; margin-bottom: 12px; outline: none;
         }
         .enter-btn { width: 100%; padding: 14px; background: var(--accent); border: none; color: #fff; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .enter-btn:active { transform: scale(0.95); }
 
         /* --- ОСНОВНОЙ ИНТЕРФЕЙС --- */
         body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 20px; margin: 0; }
@@ -76,10 +80,8 @@
             display: flex; align-items: center; justify-content: flex-start; 
         }
 
-        /* Блокировка управления */
         .card.locked .ctrl-to-lock { opacity: 0.15; pointer-events: none; filter: blur(2px) grayscale(1); transition: 0.5s; }
 
-        /* ВЕРНУЛ АНИМАЦИЮ РЕЖИМОВ */
         .mode-badge { 
             position: absolute; top: 15px; right: 20px; font-size: 9px; font-weight: bold; 
             letter-spacing: 1px; padding: 3px 8px; border-radius: 5px; 
@@ -120,9 +122,7 @@
     <div id="auth-screen">
         <div class="auth-container">
             <i class="fa-solid fa-house-chimney blue-house"></i>
-            <div class="fazenda-badge">
-                ФАЗЕНДА <span id="dot-auth" class="status-dot"></span>
-            </div>
+            <div class="fazenda-badge">ФАЗЕНДА <span id="dot-auth" class="status-dot"></span></div>
             <input type="password" id="passInput" placeholder="ПАРОЛЬ">
             <button class="enter-btn" onclick="checkPass()">ВОЙТИ</button>
         </div>
@@ -131,7 +131,6 @@
     <div id="app-content">
         <div class="card">
             <h3>Состояние <span id="dot-main" class="status-dot"></span></h3>
-            
             <div id="badge_auto" class="mode-badge badge-auto">AUTO</div>
             <div id="badge_manual" class="mode-badge badge-manual">MANUAL</div>
             <div id="badge_off" class="mode-badge badge-off">OFF</div>
@@ -198,8 +197,7 @@
                 userName: cfg.u, password: cfg.w, useSSL: true, 
                 onSuccess: () => {
                     updateStatusDot(true);
-                    mqtt.subscribe("heater/#"); 
-                    mqtt.subscribe("dom/tempUlica");
+                    mqtt.subscribe("heater/#"); mqtt.subscribe("dom/tempUlica");
                 },
                 onFailure: () => {
                     updateStatusDot(false);
@@ -260,6 +258,15 @@
             if(mqtt.isConnected()) {
                 let msg = new Paho.MQTT.Message(String(val)); msg.destinationName = topic; mqtt.send(msg); 
             }
+        }
+
+        // РЕГИСТРАЦИЯ SERVICE WORKER ДЛЯ PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW OK'))
+                    .catch(err => console.log('SW Error', err));
+            });
         }
     </script>
 </body>
