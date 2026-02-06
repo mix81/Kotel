@@ -7,7 +7,7 @@
   "theme_color": "#0d1117",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/885/885325.png",
+      "src": "https://raw.githubusercontent.com/mix81/Kotel/main/home_icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
