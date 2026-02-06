@@ -1,13 +1,14 @@
 {
-  "name": "Heater Control",
-  "short_name": "Котел",
+  "name": "Heating Pro Elite",
+  "short_name": "Fazenda",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/mix81/Kotel/main/home_icon.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/553/553376.png",
       "sizes": "512x512",
       "type": "image/png"
     }
