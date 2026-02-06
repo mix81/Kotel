@@ -3,197 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heating Pro Elite v5.11</title>
+    <title>Heating Pro Elite v5.14</title>
     
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0d1117">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     
     <style>
         :root { 
             --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --text: #c9d1d9; 
             --on: #238636; --off: #da3633; --border: #30363d;
-            --neon: 0 0 15px rgba(88,166,255,0.3);
+            --neon: 0 0 15px rgba(88,166,255,0.4);
         }
+
+        /* --- АНИМАЦИИ --- */
+        @keyframes pulse-glow {
+            from { box-shadow: 0 0 5px rgba(88,166,255,0.2); opacity: 0.8; }
+            to { box-shadow: 0 0 15px rgba(88,166,255,0.6); opacity: 1; }
+        }
+
+        @keyframes pulse-green {
+            from { box-shadow: 0 0 3px rgba(35,134,54,0.3); opacity: 0.6; }
+            to { box-shadow: 0 0 12px rgba(35,134,54,1); opacity: 1; }
+        }
+
+        /* --- ИНДИКАТОР СОСТОЯНИЯ --- */
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--off);
+            border-radius: 50%;
+            margin-left: 8px;
+            transition: 0.3s;
+            box-shadow: 0 0 5px rgba(218,54,51,0.5);
+            vertical-align: middle;
+        }
+
+        .status-dot.online {
+            background-color: #2ea043;
+            animation: pulse-green 1.5s infinite alternate ease-in-out;
+        }
+
+        /* --- ЭКРАН ВХОДА --- */
+        #auth-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .auth-container { display: flex; flex-direction: column; align-items: center; width: 280px; }
+        .blue-house { color: var(--accent); font-size: 70px; margin-bottom: 25px; opacity: 0.9; }
+        .fazenda-badge {
+            width: 100%; padding: 15px 0; background: rgba(88,166,255,0.1);
+            color: var(--accent); border: 1px solid var(--accent); border-radius: 12px;
+            font-size: 24px; font-weight: bold; letter-spacing: 4px; margin-bottom: 20px;
+            text-align: center; box-sizing: border-box;
+            animation: pulse-glow 2s infinite alternate;
+        }
+        .auth-container input {
+            width: 100%; padding: 14px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; color: #fff; font-size: 16px; text-align: center; margin-bottom: 12px; outline: none;
+        }
+        .enter-btn { width: 100%; padding: 14px; background: var(--accent); border: none; color: #fff; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .enter-btn:active { transform: scale(0.95); }
+
+        /* --- ОСНОВНОЙ ИНТЕРФЕЙС --- */
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 20px; margin: 0; }
+        #app-content { display: none; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; width: 315px; border: 1px solid var(--border); position: relative; box-sizing: border-box; transition: 0.4s; }
         
-        body { 
-            background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; 
-            display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; 
-            padding: 20px; margin: 0; 
+        .card h3 { 
+            margin: 0 0 18px 0; font-size: 10px; color: #8b949e; 
+            text-transform: uppercase; letter-spacing: 1.5px; 
+            display: flex; align-items: center; justify-content: flex-start; 
         }
 
-        .card { 
-            background: var(--card); border-radius: 16px; padding: 20px; 
-            width: 315px; border: 1px solid var(--border); transition: 0.4s; 
-            position: relative; box-sizing: border-box; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
+        /* Блокировка управления */
+        .card.locked .ctrl-to-lock { opacity: 0.15; pointer-events: none; filter: blur(2px) grayscale(1); transition: 0.5s; }
 
-        .card.locked .ctrl-to-lock { 
-            opacity: 0.15; pointer-events: none; filter: blur(2px) grayscale(1); transition: 0.5s; 
-        }
-
-        .mode-badge {
-            position: absolute; top: 15px; right: 20px;
-            font-size: 9px; font-weight: bold; letter-spacing: 1px;
-            padding: 3px 8px; border-radius: 5px; border: 1px solid transparent;
-            transition: 0.5s; opacity: 0; transform: scale(0.8);
+        /* ВЕРНУЛ АНИМАЦИЮ РЕЖИМОВ */
+        .mode-badge { 
+            position: absolute; top: 15px; right: 20px; font-size: 9px; font-weight: bold; 
+            letter-spacing: 1px; padding: 3px 8px; border-radius: 5px; 
+            border: 1px solid transparent; transition: 0.5s; opacity: 0; transform: scale(0.8); 
         }
         .mode-badge.active { 
-            opacity: 1; transform: scale(1);
+            opacity: 1; transform: scale(1); 
             animation: pulse-glow 2s infinite alternate; 
         }
         
         .badge-auto { color: var(--accent); border-color: var(--accent); background: rgba(88,166,255,0.1); }
         .badge-manual { color: var(--on); border-color: var(--on); background: rgba(35,134,54,0.1); }
         .badge-off { color: var(--off); border-color: var(--off); background: rgba(218,54,51,0.1); }
-
-        @keyframes pulse-glow {
-            from { box-shadow: 0 0 2px currentColor; opacity: 0.8; }
-            to { box-shadow: 0 0 12px currentColor; opacity: 1; }
-        }
-
-        h3 { margin: 0 0 18px 0; font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1.5px; }
-
-        .temp-row {
-            display: flex; justify-content: center; align-items: flex-start; margin: 10px 0 25px 0;
-        }
-        .val-display { 
-            font-size: 58px; font-weight: 200; color: #fff; line-height: 1;
-            text-shadow: 0 0 20px rgba(88,166,255,0.2);
-        }
-        .out-temp-box {
-            margin-left: 20px; text-align: left; border-left: 1px solid var(--border); 
-            padding-left: 15px; padding-top: 5px;
-        }
-
+        
+        .temp-row { display: flex; justify-content: center; align-items: flex-start; margin: 10px 0 25px 0; }
+        .val-display { font-size: 58px; font-weight: 200; color: #fff; line-height: 1; text-shadow: 0 0 20px rgba(88,166,255,0.2); }
+        .out-temp-box { margin-left: 20px; text-align: left; border-left: 1px solid var(--border); padding-left: 15px; padding-top: 5px; }
+        
         .btn-group { display: flex; gap: 6px; margin-bottom: 22px; }
-        .btn-group button { 
-            flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; 
-            background: #21262d; color: var(--text); cursor: pointer; font-size: 10px; 
-            font-weight: bold; transition: 0.3s;
-        }
+        .btn-group button { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: #21262d; color: var(--text); cursor: pointer; font-size: 10px; font-weight: bold; transition: 0.3s; }
         .btn-group button.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: var(--neon); }
-
-        .relay-item { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 10px 14px; background: rgba(0,0,0,0.2); border-radius: 12px; 
-            margin-top: 8px; border: 1px solid var(--border);
-        }
-
-        .toggle-btn { 
-            position: relative; width: 52px; height: 26px; 
-            background: #30363d; border-radius: 20px; cursor: pointer; border: none; transition: 0.3s; 
-        }
-        .toggle-btn::before { 
-            content: ''; position: absolute; top: 3px; left: 3px; 
-            width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; 
-        }
+        
+        .relay-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(0,0,0,0.2); border-radius: 12px; margin-top: 8px; border: 1px solid var(--border); }
+        .toggle-btn { position: relative; width: 52px; height: 26px; background: #30363d; border-radius: 20px; cursor: pointer; border: none; transition: 0.3s; }
+        .toggle-btn::before { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
         .toggle-btn.is-on { background: var(--on); box-shadow: 0 0 10px rgba(35,134,54,0.4); }
         .toggle-btn.is-on::before { left: 29px; }
-
+        
         input[type="range"] { width: 100%; accent-color: var(--accent); margin: 12px 0; }
-        input[type="number"] { 
-            background: #0d1117; border: 1px solid var(--border); color: var(--accent); 
-            padding: 6px; border-radius: 6px; width: 55px; text-align: center; font-size: 12px;
-        }
-
+        input[type="number"] { background: #0d1117; border: 1px solid var(--border); color: var(--accent); padding: 6px; border-radius: 6px; width: 55px; text-align: center; }
         .grid-status { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .badge { 
-            padding: 12px; border-radius: 10px; background: #0d1117; font-size: 10px; 
-            text-align: center; border: 1px solid var(--border); transition: 0.4s; color: #444; font-weight: bold; 
-        }
+        .badge { padding: 12px; border-radius: 10px; background: #0d1117; font-size: 10px; text-align: center; border: 1px solid var(--border); transition: 0.4s; color: #444; font-weight: bold; }
         .badge.active { color: #fff; border-color: var(--accent); background: rgba(88,166,255,0.05); }
-
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h3>Состояние</h3>
-        
-        <div id="badge_auto" class="mode-badge badge-auto">AUTO</div>
-        <div id="badge_manual" class="mode-badge badge-manual">MANUAL</div>
-        <div id="badge_off" class="mode-badge badge-off">OFF</div>
-        
-        <div class="temp-row">
-            <div class="val-display">
-                <span id="t_water">--</span><small style="font-size:18px; color:var(--accent)">°C</small>
+    <div id="auth-screen">
+        <div class="auth-container">
+            <i class="fa-solid fa-house-chimney blue-house"></i>
+            <div class="fazenda-badge">
+                ФАЗЕНДА <span id="dot-auth" class="status-dot"></span>
             </div>
-            <div class="out-temp-box">
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px;">Улица</div>
-                <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;">
-                    <span id="t_out_val">--</span><small style="font-size: 14px;">°</small>
+            <input type="password" id="passInput" placeholder="ПАРОЛЬ">
+            <button class="enter-btn" onclick="checkPass()">ВОЙТИ</button>
+        </div>
+    </div>
+
+    <div id="app-content">
+        <div class="card">
+            <h3>Состояние <span id="dot-main" class="status-dot"></span></h3>
+            
+            <div id="badge_auto" class="mode-badge badge-auto">AUTO</div>
+            <div id="badge_manual" class="mode-badge badge-manual">MANUAL</div>
+            <div id="badge_off" class="mode-badge badge-off">OFF</div>
+            
+            <div class="temp-row">
+                <div class="val-display"><span id="t_water">--</span><small style="font-size:18px; color:var(--accent)">°C</small></div>
+                <div class="out-temp-box">
+                    <div style="font-size: 9px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px;">Улица</div>
+                    <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;"><span id="t_out_val">--</span><small style="font-size: 14px;">°</small></div>
                 </div>
             </div>
-        </div>
-
-        <div style="text-align:center; font-size: 11px; color: #58a6ff; margin-bottom: 20px; opacity: 0.8;">
-            Мощность ТЭН 1: <span id="pwr">0</span>%
-        </div>
-        
-        <div class="grid-status">
-            <div id="st_r1" class="badge">ТЭН 1</div>
-            <div id="st_pmp" class="badge">НАСОС</div>
-            <div id="st_r2" class="badge">ТЭН 2</div>
-            <div id="st_r3" class="badge">ТЭН 3</div>
-        </div>
-    </div>
-
-    <div class="card" id="card_control">
-        <h3>Управление</h3>
-        <div class="btn-group">
-            <button id="m_auto" onclick="send('heater/mode/set','auto')">АВТО</button>
-            <button id="m_manual" onclick="send('heater/mode/set','manual')">РУЧНОЙ</button>
-            <button id="m_off" onclick="send('heater/mode/set','off')">ВЫКЛ</button>
-        </div>
-
-        <div id="manual_zone" class="ctrl-to-lock">
-            <div style="display:flex; justify-content:space-between; font-size:12px; color:#8b949e; margin-top:10px;">
-                <span>Цель (Вода):</span><b id="l_sp" style="color:#fff">--</b>
-            </div>
-            <input type="range" min="20" max="75" id="r_sp" oninput="document.getElementById('l_sp').innerText=this.value" onchange="send('heater/setpoint/set', this.value)">
             
-            <div class="relay-item">
-                <span style="font-size:13px;">ТЭН Ступень 2</span>
-                <button id="sw_r2" class="toggle-btn" onclick="toggleRelay('heater/relay2/set', 'r2')"></button>
-            </div>
-            <div class="relay-item">
-                <span style="font-size:13px;">ТЭН Ступень 3</span>
-                <button id="sw_r3" class="toggle-btn" onclick="toggleRelay('heater/relay3/set', 'r3')"></button>
+            <div style="text-align:center; font-size: 11px; color: #58a6ff; margin-bottom: 20px; opacity: 0.8;">Мощность ТЭН 1: <span id="pwr">0</span>%</div>
+            
+            <div class="grid-status">
+                <div id="st_r1" class="badge">ТЭН 1</div><div id="st_pmp" class="badge">НАСОС</div><div id="st_r2" class="badge">ТЭН 2</div><div id="st_r3" class="badge">ТЭН 3</div>
             </div>
         </div>
-    </div>
 
-    <div class="card" id="card_auto">
-        <h3>Параметры ПЗА</h3>
-        <div class="ctrl-to-lock">
-            <div style="font-size:12px; margin-bottom:8px; color:#8b949e;">Цель в комнате: <b id="l_rt" style="color:#fff">--</b>°C</div>
-            <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
-            
-            <div style="display:flex; justify-content:space-between; margin-top: 15px; font-size: 12px; align-items: center;">
-                <span style="color:#8b949e;">Кривая (K-Factor):</span>
-                <input type="number" step="0.05" id="i_kf" onchange="send('heater/k_factor/set', this.value)">
+        <div class="card" id="card_control">
+            <h3>Управление</h3>
+            <div class="btn-group">
+                <button id="m_auto" onclick="send('heater/mode/set','auto')">АВТО</button>
+                <button id="m_manual" onclick="send('heater/mode/set','manual')">РУЧНОЙ</button>
+                <button id="m_off" onclick="send('heater/mode/set','off')">ВЫКЛ</button>
             </div>
+            <div id="manual_zone" class="ctrl-to-lock">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#8b949e; margin-top:10px;"><span>Цель (Вода):</span><b id="l_sp" style="color:#fff">--</b></div>
+                <input type="range" min="20" max="75" id="r_sp" oninput="document.getElementById('l_sp').innerText=this.value" onchange="send('heater/setpoint/set', this.value)">
+                <div class="relay-item"><span>ТЭН Ступень 2</span><button id="sw_r2" class="toggle-btn" onclick="toggleRelay('heater/relay2/set', 'r2')"></button></div>
+                <div class="relay-item"><span>ТЭН Ступень 3</span><button id="sw_r3" class="toggle-btn" onclick="toggleRelay('heater/relay3/set', 'r3')"></button></div>
+            </div>
+        </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; border-top:1px solid #333; padding-top:20px; margin-top:20px; text-align: center;">
-                <div><small style="color:#555">Kp</small><br><input type="number" id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
-                <div><small style="color:#555">Ki</small><br><input type="number" id="i_ki" onchange="send('heater/ki/set', this.value)"></div>
-                <div><small style="color:#555">Kd</small><br><input type="number" id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
+        <div class="card" id="card_auto">
+            <h3>Параметры ПЗА</h3>
+            <div class="ctrl-to-lock">
+                <div style="font-size:12px; margin-bottom:8px; color:#8b949e;">Цель в комнате: <b id="l_rt" style="color:#fff">--</b>°C</div>
+                <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
+                <div style="display:flex; justify-content:space-between; margin-top: 15px; font-size: 12px; align-items: center;"><span>Кривая (K-Factor):</span><input type="number" step="0.05" id="i_kf" onchange="send('heater/k_factor/set', this.value)"></div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; border-top:1px solid #333; padding-top:20px; margin-top:20px; text-align: center;">
+                    <div><small style="color:#555">Kp</small><br><input type="number" id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
+                    <div><small style="color:#555">Ki</small><br><input type="number" id="i_ki" onchange="send('heater/ki/set', this.value)"></div>
+                    <div><small style="color:#555">Kd</small><br><input type="number" id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Твои настройки подключения к брокеру
-        const cfg = { 
-            h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', 
-            id: 'PRO_V511_'+Math.random().toString(16).substr(2,4) 
-        };
+        const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_'+Math.random().toString(16).substr(2,4) };
         const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
         let states = { r2: 0, r3: 0, mode: '' };
+
+        function updateStatusDot(online) {
+            ['dot-auth', 'dot-main'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.toggle('online', online);
+            });
+        }
+
+        function connectMQTT() {
+            mqtt.connect({ 
+                userName: cfg.u, password: cfg.w, useSSL: true, 
+                onSuccess: () => {
+                    updateStatusDot(true);
+                    mqtt.subscribe("heater/#"); 
+                    mqtt.subscribe("dom/tempUlica");
+                },
+                onFailure: () => {
+                    updateStatusDot(false);
+                    setTimeout(connectMQTT, 5000);
+                }
+            });
+        }
+
+        mqtt.onConnectionLost = (e) => {
+            updateStatusDot(false);
+            if (e.errorCode !== 0) setTimeout(connectMQTT, 5000);
+        };
+
+        function checkPass() {
+            if (document.getElementById('passInput').value === "1902") {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'flex';
+                connectMQTT();
+            } else { alert("ОШИБКА ПАРОЛЯ"); }
+        }
 
         mqtt.onMessageArrived = (m) => {
             const t = m.destinationName; const v = m.payloadString;
@@ -201,11 +227,12 @@
             if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
             if(t === 'heater/mode/state') {
                 states.mode = v;
-                ['auto','manual','off'].forEach(x => document.getElementById('m_'+x).className = (v===x?'active':''));
-                ['auto','manual','off'].forEach(x => document.getElementById('badge_'+x).classList.toggle('active', v === x));
+                ['auto','manual','off'].forEach(x => {
+                    document.getElementById('m_'+x).className = (v===x?'active':'');
+                    document.getElementById('badge_'+x).classList.toggle('active', v === x);
+                });
                 document.getElementById('card_auto').classList.toggle('locked', v !== 'auto');
                 document.getElementById('manual_zone').parentElement.classList.toggle('locked', v === 'auto');
-                ['sw_r2', 'sw_r3'].forEach(id => document.getElementById(id).style.pointerEvents = (v === 'auto') ? 'none' : 'auto');
             }
             if(t === 'heater/power_percent') {
                 document.getElementById('pwr').innerText = v;
@@ -224,23 +251,16 @@
         };
 
         function updateToggle(btnId, badgeId, state) {
-            const btn = document.getElementById(btnId);
-            const badge = document.getElementById(badgeId);
+            const btn = document.getElementById(btnId); const badge = document.getElementById(badgeId);
             if(btn) btn.className = state ? "toggle-btn is-on" : "toggle-btn";
             if(badge) badge.className = state ? "badge active" : "badge";
         }
-
         function toggleRelay(topic, key) { if (states.mode !== 'auto') send(topic, states[key] ? 0 : 1); }
-
-        function send(topic, val) {
-            let msg = new Paho.MQTT.Message(String(val));
-            msg.destinationName = topic;
-            mqtt.send(msg);
+        function send(topic, val) { 
+            if(mqtt.isConnected()) {
+                let msg = new Paho.MQTT.Message(String(val)); msg.destinationName = topic; mqtt.send(msg); 
+            }
         }
-
-        mqtt.connect({ userName: cfg.u, password: cfg.w, useSSL: true, onSuccess: () => {
-            mqtt.subscribe("heater/#"); mqtt.subscribe("dom/tempUlica");
-        }});
     </script>
 </body>
 </html>
