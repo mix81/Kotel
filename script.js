@@ -14,7 +14,8 @@ function connectMQTT() {
         userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
             updateStatusDot(true);
-            mqtt.subscribe("heater/#"); mqtt.subscribe("dom/#");
+            mqtt.subscribe("heater/#"); 
+            mqtt.subscribe("dom/#"); 
         },
         onFailure: () => {
             updateStatusDot(false);
@@ -37,12 +38,19 @@ function checkPass() {
 }
 
 mqtt.onMessageArrived = (m) => {
-    const t = m.destinationName; const v = m.payloadString;
+    const t = m.destinationName; 
+    const v = m.payloadString;
     
+    // Обработка данных
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
     if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
-    if(t === 'dom/mojnost/kot') document.getElementById('pwr_total').innerText = v;
     
+    // МОЩНОСТЬ КОТЛА (Только dom/mojnost/kot)
+    if(t === 'dom/mojnost/kot') {
+        document.getElementById('pwr_total').innerText = v;
+    }
+    
+    // Режимы и подсветка
     if(t === 'heater/mode/state') {
         states.mode = v;
         const targetWater = document.getElementById('l_sp');
@@ -69,8 +77,8 @@ mqtt.onMessageArrived = (m) => {
         }
 
         ['auto','manual','off'].forEach(x => {
-            document.getElementById('m_'+x).className = (v===x?'active':'');
-            document.getElementById('badge_'+x).classList.toggle('active', v === x);
+            if(document.getElementById('m_'+x)) document.getElementById('m_'+x).className = (v===x?'active':'');
+            if(document.getElementById('badge_'+x)) document.getElementById('badge_'+x).classList.toggle('active', v === x);
         });
     }
 
@@ -100,7 +108,7 @@ function updateToggle(btnId, badgeId, state) {
 function toggleRelay(topic, key) { if (states.mode === 'manual') send(topic, states[key] ? 0 : 1); }
 
 function send(topic, val) { 
-    if(mqtt.isConnected()) {
+    if(mqtt && mqtt.isConnected()) {
         let msg = new Paho.MQTT.Message(String(val)); msg.destinationName = topic; mqtt.send(msg); 
     }
 }
