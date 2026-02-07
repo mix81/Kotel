@@ -2,6 +2,37 @@ const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_
 const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
 let states = { r2: 0, r3: 0, mode: '' };
 
+// ЧАСЫ
+function updateClock() {
+    const now = new Date();
+    const t = now.toLocaleTimeString('ru-RU', { hour12: false });
+    const d = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('clock-time').innerText = t;
+    document.getElementById('clock-date').innerText = d;
+}
+setInterval(updateClock, 1000);
+
+// УПРАВЛЕНИЕ ОКНОМ
+function openControl() {
+    document.getElementById('overlay').style.display = 'block';
+    const content = document.getElementById('app-content');
+    content.style.display = 'flex';
+    setTimeout(() => { 
+        content.classList.add('show');
+        document.getElementById('main-dashboard').style.filter = 'blur(10px)';
+    }, 10);
+}
+
+function closeControl() {
+    const content = document.getElementById('app-content');
+    content.classList.remove('show');
+    document.getElementById('main-dashboard').style.filter = 'none';
+    setTimeout(() => {
+        content.style.display = 'none';
+        document.getElementById('overlay').style.display = 'none';
+    }, 400);
+}
+
 function updateStatusDot(online) {
     ['dot-auth', 'dot-main'].forEach(id => {
         const el = document.getElementById(id);
@@ -14,8 +45,7 @@ function connectMQTT() {
         userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
             updateStatusDot(true);
-            mqtt.subscribe("heater/#"); 
-            mqtt.subscribe("dom/#"); 
+            mqtt.subscribe("heater/#"); mqtt.subscribe("dom/#");
         },
         onFailure: () => {
             updateStatusDot(false);
@@ -24,61 +54,54 @@ function connectMQTT() {
     });
 }
 
-mqtt.onConnectionLost = (e) => {
-    updateStatusDot(false);
-    if (e.errorCode !== 0) setTimeout(connectMQTT, 5000);
-};
-
 function checkPass() {
     if (document.getElementById('passInput').value === "1902") {
         document.getElementById('auth-screen').style.display = 'none';
-        document.getElementById('app-content').style.display = 'flex';
+        updateClock();
         connectMQTT();
     } else { alert("ОШИБКА ПАРОЛЯ"); }
 }
 
 mqtt.onMessageArrived = (m) => {
-    const t = m.destinationName; 
-    const v = m.payloadString;
+    const t = m.destinationName; const v = m.payloadString;
     
-    // Обработка данных
-    if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
-    if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
-    
-    // МОЩНОСТЬ КОТЛА (Только dom/mojnost/kot)
-    if(t === 'dom/mojnost/kot') {
-        document.getElementById('pwr_total').innerText = v;
+    if(t === 'heater/temperature') {
+        document.getElementById('t_water').innerText = v;
+        document.getElementById('dash_t_water').innerText = v;
     }
+    if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
+    if(t === 'dom/mojnost/kot') document.getElementById('pwr_total').innerText = v;
     
-    // Режимы и подсветка
     if(t === 'heater/mode/state') {
         states.mode = v;
+        const dashMode = document.getElementById('dash_mode_val');
         const targetWater = document.getElementById('l_sp');
         const targetRoom = document.getElementById('l_rt');
-        const lockManual = document.getElementById('lock_manual');
-        const lockAuto = document.getElementById('lock_auto');
-
-        targetWater.classList.remove('mode-auto-glow', 'mode-manual-glow');
-        targetRoom.classList.remove('mode-auto-glow', 'mode-manual-glow');
+        
+        // Сброс всех стилей
+        [targetWater, targetRoom, dashMode].forEach(el => {
+            el.classList.remove('mode-auto-glow', 'mode-manual-glow', 'mode-off-glow');
+        });
 
         if(v === 'auto') {
-            targetWater.classList.add('mode-auto-glow');
-            targetRoom.classList.add('mode-auto-glow');
-            lockManual.classList.add('locked');
-            lockAuto.classList.remove('locked');
+            dashMode.innerText = "АВТОМАТ";
+            [targetWater, targetRoom, dashMode].forEach(el => el.classList.add('mode-auto-glow'));
+            document.getElementById('lock_manual').classList.add('locked');
+            document.getElementById('lock_auto').classList.remove('locked');
         } else if(v === 'manual') {
-            targetWater.classList.add('mode-manual-glow');
-            targetRoom.classList.add('mode-manual-glow');
-            lockManual.classList.remove('locked');
-            lockAuto.classList.add('locked');
+            dashMode.innerText = "РУЧНОЙ";
+            [targetWater, targetRoom, dashMode].forEach(el => el.classList.add('mode-manual-glow'));
+            document.getElementById('lock_manual').classList.remove('locked');
+            document.getElementById('lock_auto').classList.add('locked');
         } else {
-            lockManual.classList.add('locked');
-            lockAuto.classList.add('locked');
+            dashMode.innerText = "ВЫКЛЮЧЕН";
+            dashMode.classList.add('mode-off-glow');
+            document.getElementById('lock_manual').classList.add('locked');
+            document.getElementById('lock_auto').classList.add('locked');
         }
 
         ['auto','manual','off'].forEach(x => {
             if(document.getElementById('m_'+x)) document.getElementById('m_'+x).className = (v===x?'active':'');
-            if(document.getElementById('badge_'+x)) document.getElementById('badge_'+x).classList.toggle('active', v === x);
         });
     }
 
