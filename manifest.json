@@ -1,5 +1,5 @@
 {
-  "name": "Heating Pro Fazenda",
+  "name": "Fazenda",
   "short_name": "Фазенда",
   "start_url": "index.html",
   "display": "standalone",
@@ -7,6 +7,11 @@
   "theme_color": "#0d1117",
   "orientation": "any",
   "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/553/553376.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
     {
       "src": "https://cdn-icons-png.flaticon.com/512/553/553376.png",
       "sizes": "512x512",
