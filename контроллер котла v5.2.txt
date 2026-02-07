@@ -1,0 +1,203 @@
+// VERSION 5.2 - FINAL MASTER (PID + PZA + FULL CONTROL + FEEDBACK)
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <PID_v1.h>
+#include <Preferences.h>
+#include <ArduinoOTA.h>
+
+// --- Настройки сети ---
+const char ssid[] = "Xiaomi";
+const char password[] = "19021984";
+const char mqtt_server[] = "m9.wqtt.ru";
+const int mqtt_port = 13730;
+const char mqtt_user[] = "u_OCW7RS";
+const char mqtt_password[] = "tY9lf91e";
+const char mqtt_client_id[] = "mix_controller_v5_final";
+
+// --- Пины ---
+#define HEATER_RELAY_PIN 5
+#define RELAY2_PIN 13
+#define RELAY3_PIN 14
+#define PUMP_RELAY_PIN 27
+#define ONE_WIRE_BUS 4
+
+// --- Глобальные переменные ---
+double Setpoint, Input, Output;
+double Kp = 2.0, Ki = 5.0, Kd = 1.0; 
+const unsigned long windowSize = 5000;
+unsigned long windowStartTime = 0;
+
+double manualSetpoint = 30.0, kFactor = 0.7, roomTemp = 24.0;
+double relay2_threshold = -5.0, relay3_threshold = -12.0;
+String currentMode = "manual"; 
+float outdoorTemp = -1000.0;
+bool r1S, r2S, r3S, pS; 
+bool manualR2 = false, manualR3 = false; 
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+Preferences pref;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
+unsigned long lastMqttUpdate = 0, lastTempRequest = 0, lastSerialTime = 0, mqttWatchdog = 0;
+
+// --- Сохранение в память ---
+void saveParam(const char* key, float value) {
+  pref.begin("h-cfg", false);
+  pref.putFloat(key, value);
+  pref.end();
+}
+
+void loadSettings() {
+  pref.begin("h-cfg", true);
+  manualSetpoint = pref.getFloat("sp", 30.0);
+  kFactor = pref.getFloat("kf", 0.7);
+  roomTemp = pref.getFloat("rt", 24.0);
+  Kp = pref.getFloat("kp", 2.0);
+  Ki = pref.getFloat("ki", 5.0);
+  Kd = pref.getFloat("kd", 1.0);
+  relay2_threshold = pref.getFloat("r2t", -5.0);
+  relay3_threshold = pref.getFloat("r3t", -12.0);
+  currentMode = pref.getString("md", "manual"); 
+  pref.end();
+  myPID.SetTunings(Kp, Ki, Kd);
+}
+
+// --- Обработка команд MQTT ---
+void callback(char* topic, byte* payload, unsigned int length) {
+  String msg = ""; for (int i = 0; i < length; i++) msg += (char)payload[i];
+  String t = String(topic);
+  
+  if (t == "heater/mode/set") { currentMode = msg; pref.begin("h-cfg", false); pref.putString("md", currentMode); pref.end(); }
+  else if (t == "heater/kp/set") { Kp = msg.toDouble(); saveParam("kp", Kp); myPID.SetTunings(Kp, Ki, Kd); }
+  else if (t == "heater/ki/set") { Ki = msg.toDouble(); saveParam("ki", Ki); myPID.SetTunings(Kp, Ki, Kd); }
+  else if (t == "heater/kd/set") { Kd = msg.toDouble(); saveParam("kd", Kd); myPID.SetTunings(Kp, Ki, Kd); }
+  else if (t == "heater/k_factor/set") { kFactor = msg.toDouble(); saveParam("kf", kFactor); }
+  else if (t == "heater/room_temp/set") { roomTemp = msg.toDouble(); saveParam("rt", roomTemp); }
+  else if (t == "heater/setpoint/set") { manualSetpoint = msg.toDouble(); saveParam("sp", manualSetpoint); }
+  else if (t == "heater/relay2_temp/set") { relay2_threshold = msg.toDouble(); saveParam("r2t", relay2_threshold); }
+  else if (t == "heater/relay3_temp/set") { relay3_threshold = msg.toDouble(); saveParam("r3t", relay3_threshold); }
+  else if (t == "dom/tempUlica") { outdoorTemp = msg.toFloat(); }
+  else if (t == "heater/relay2/set") { manualR2 = (msg == "1"); }
+  else if (t == "heater/relay3/set") { manualR3 = (msg == "1"); }
+  
+  lastMqttUpdate = 0; // Форсировать немедленный отчет в MQTT
+}
+
+void reconnect() {
+  if (WiFi.status() == WL_CONNECTED && millis() - lastMqttUpdate > 5000) {
+    if (client.connect(mqtt_client_id, mqtt_user, mqtt_password, "heater/status", 0, true, "offline")) {
+      client.publish("heater/status", "online", true);
+      const char* topics[] = {
+        "heater/mode/set","heater/kp/set","heater/ki/set","heater/kd/set",
+        "heater/k_factor/set","heater/room_temp/set","heater/setpoint/set",
+        "dom/tempUlica","heater/relay2/set","heater/relay3/set",
+        "heater/relay2_temp/set","heater/relay3_temp/set"
+      };
+      for(auto i : topics) client.subscribe(i);
+      mqttWatchdog = millis();
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  loadSettings();
+  WiFi.begin(ssid, password);
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
+  client.setBufferSize(512); 
+  for(int p : {5, 13, 14, 27}) pinMode(p, OUTPUT);
+  myPID.SetOutputLimits(0, windowSize);
+  myPID.SetMode(AUTOMATIC);
+  sensors.begin();
+  sensors.setWaitForConversion(false);
+  windowStartTime = millis();
+  mqttWatchdog = millis();
+  ArduinoOTA.begin();
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!client.connected()) reconnect(); else { client.loop(); mqttWatchdog = millis(); }
+  }
+  // Перезагрузка если связь зависла на 5 минут
+  if (millis() - mqttWatchdog > 300000) ESP.restart();
+  
+  ArduinoOTA.handle();
+
+  // Опрос датчика раз в 2 сек
+  if (millis() - lastTempRequest >= 2000) {
+    float t = sensors.getTempCByIndex(0);
+    if (t > -100 && t < 150) Input = t;
+    sensors.requestTemperatures();
+    lastTempRequest = millis();
+  }
+
+  // --- ЛОГИКА ВЫБОРА РЕЖИМА ---
+  if (currentMode == "auto" && outdoorTemp > -90.0) {
+    Setpoint = constrain(round(roomTemp + kFactor * (roomTemp - outdoorTemp)), 20, 75);
+    r2S = (outdoorTemp <= relay2_threshold); 
+    r3S = (outdoorTemp <= relay3_threshold);
+  } else if (currentMode == "manual") {
+    Setpoint = manualSetpoint; 
+    r2S = manualR2; 
+    r3S = manualR3;
+  } else { 
+    Setpoint = 0; Output = 0; r1S = r2S = r3S = false; 
+  }
+
+  // Расчет ПИД (ТЭН 1)
+  if (currentMode != "off") {
+    myPID.Compute();
+    if (millis() - windowStartTime >= windowSize) windowStartTime += windowSize;
+    r1S = (millis() - windowStartTime < Output);
+  }
+
+  // Управление реле
+  digitalWrite(HEATER_RELAY_PIN, r1S);
+  digitalWrite(RELAY2_PIN, r2S);
+  digitalWrite(RELAY3_PIN, r3S);
+  pS = (r1S || r2S || r3S || Input > 26.0); // Насос если ТЭНы или вода теплая
+  digitalWrite(PUMP_RELAY_PIN, pS);
+
+  // --- ОТПРАВКА СТАТУСОВ В MQTT ---
+  if (millis() - lastMqttUpdate >= 10000 && client.connected()) {
+    lastMqttUpdate = millis();
+    client.publish("heater/temperature", String(Input, 1).c_str(), true);
+    client.publish("heater/power_percent", String((int)map(Output, 0, windowSize, 0, 100)).c_str(), true);
+    client.publish("heater/room_temp/state", String(roomTemp, 1).c_str(), true);
+    client.publish("heater/k_factor/state", String(kFactor, 2).c_str(), true);
+    client.publish("heater/setpoint/state", String((int)Setpoint).c_str(), true);
+    client.publish("heater/mode/state", currentMode.c_str(), true);
+    client.publish("heater/relay2/state", r2S ? "1" : "0", true);
+    client.publish("heater/relay3/state", r3S ? "1" : "0", true);
+    client.publish("heater/relay2_temp/state", String(relay2_threshold, 1).c_str(), true);
+    client.publish("heater/relay3_temp/state", String(relay3_threshold, 1).c_str(), true);
+    client.publish("heater/kp/state", String(Kp, 1).c_str(), true);
+    client.publish("heater/ki/state", String(Ki, 1).c_str(), true);
+    client.publish("heater/kd/state", String(Kd, 1).c_str(), true);
+  }
+
+  // --- ЛОКАЛЬНЫЙ МОНИТОРИНГ ---
+  if (millis() - lastSerialTime >= 2000) {
+    lastSerialTime = millis();
+    Serial.println("\n--- [ МОНИТОРИНГ ВЕРСИЯ 5.2 ] ---");
+    Serial.printf("РЕЖИМ: [%s] | WiFi: %d dBm | MQTT: %s\n", currentMode.c_str(), WiFi.RSSI(), client.connected() ? "OK" : "LOST");
+    Serial.printf("ПЗА: K=%.2f | T_ДОМ=%.1f | T_УЛИЦА=%.1f\n", kFactor, roomTemp, outdoorTemp);
+    Serial.printf("ПОРОГИ ТЭН: T2=%0.1f | T3=%0.1f\n", relay2_threshold, relay3_threshold);
+    Serial.println("---------------------------");
+    Serial.printf("ВОДА: %.2f °C | ЦЕЛЬ: %d °C\n", Input, (int)Setpoint);
+    Serial.printf("МОЩНОСТЬ ТЭН 1: %d %%\n", (int)map(Output, 0, windowSize, 0, 100));
+    Serial.println("---------- ЖЕЛЕЗО ----------");
+    Serial.printf("PIN 5  (ТЭН 1): %s\n", r1S ? "ВКЛ (PWM)" : "ВЫКЛ");
+    Serial.printf("PIN 13 (ТЭН 2): %s\n", r2S ? "ВКЛ" : "ВЫКЛ");
+    Serial.printf("PIN 14 (ТЭН 3): %s\n", r3S ? "ВКЛ" : "ВЫКЛ");
+    Serial.printf("PIN 27 (НАСОС): %s\n", pS ? "РАБОТАЕТ" : "СТОИТ");
+    Serial.println("---------------------------");
+  }
+}
