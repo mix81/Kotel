@@ -25,7 +25,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .auth-container input { width: 100%; padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: #fff; font-size: 16px; text-align: center; margin-bottom: 12px; }
 .enter-btn { width: 100%; padding: 14px; background: var(--accent); border: none; color: #fff; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
-/* Dashboard */
+/* Layout */
 #app-content { display: none; flex-direction: column; align-items: center; gap: 15px; padding: 15px; height: 100vh; position: relative; }
 #dashboard-view { display: flex; flex-direction: column; align-items: center; width: 100%; transition: 0.6s; }
 
@@ -33,6 +33,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 #clock-time { font-size: 60px; font-weight: 200; color: #fff; line-height: 1; }
 #clock-date { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; }
 
+/* Card */
 .card { background: var(--card); border-radius: 16px; padding: 20px; width: 315px; border: 1px solid var(--border); position: relative; cursor: pointer; }
 .card h3 { margin: 0 0 18px 0; font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 1.5px; }
 
@@ -61,7 +62,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .blur-bg { filter: blur(3px); opacity: 0.7; transform: scale(0.97); pointer-events: none; }
 .locked-ui { opacity: 0.2; filter: grayscale(1); pointer-events: none; }
 
-/* Controls */
 .btn-group { display: flex; gap: 4px; margin-bottom: 12px; }
 .btn-group button { flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: #0d1117; color: var(--text); cursor: pointer; font-size: 9px; font-weight: bold; }
 .btn-group button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -86,7 +86,23 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 input[type="range"] { width: 100%; accent-color: var(--accent); margin: 8px 0; }
 input[type="number"] { background: #0d1117; border: 1px solid var(--border); color: var(--accent); padding: 4px; border-radius: 5px; width: 45px; text-align: center; font-size: 11px; }
 
-/* Responsive adjustments for Tablets/Landscape */
+/* Demo Mode Badge */
+.demo-active::after {
+    content: "DEMO MODE";
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+    background: var(--off);
+    color: white;
+    font-size: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    z-index: 1000;
+    opacity: 0.6;
+}
+
+/* Landscape / Tablet */
 @media (min-orientation: landscape) {
     #app-content { justify-content: center; flex-direction: row; flex-wrap: wrap; }
     .unified-card { flex-direction: row; width: 90vw; max-height: 85vh; overflow-y: auto; }
