@@ -2,24 +2,20 @@ const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_
 const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
 let states = { r2: 0, r3: 0, mode: '' };
 
-// ЧАСЫ
 function updateClock() {
     const now = new Date();
-    const t = now.toLocaleTimeString('ru-RU', { hour12: false });
-    const d = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-    document.getElementById('clock-time').innerText = t;
-    document.getElementById('clock-date').innerText = d;
+    document.getElementById('clock-time').innerText = now.toLocaleTimeString('ru-RU', { hour12: false });
+    document.getElementById('clock-date').innerText = now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 setInterval(updateClock, 1000);
 
-// УПРАВЛЕНИЕ ОКНОМ
 function openControl() {
     document.getElementById('overlay').style.display = 'block';
     const content = document.getElementById('app-content');
     content.style.display = 'flex';
     setTimeout(() => { 
         content.classList.add('show');
-        document.getElementById('main-dashboard').style.filter = 'blur(10px)';
+        document.getElementById('main-dashboard').style.filter = 'blur(15px)';
     }, 10);
 }
 
@@ -30,27 +26,18 @@ function closeControl() {
     setTimeout(() => {
         content.style.display = 'none';
         document.getElementById('overlay').style.display = 'none';
-    }, 400);
-}
-
-function updateStatusDot(online) {
-    ['dot-auth', 'dot-main'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.classList.toggle('online', online);
-    });
+    }, 300);
 }
 
 function connectMQTT() {
     mqtt.connect({ 
         userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
-            updateStatusDot(true);
+            document.getElementById('dot-auth').classList.add('online');
+            document.getElementById('dot-main').classList.add('online');
             mqtt.subscribe("heater/#"); mqtt.subscribe("dom/#");
         },
-        onFailure: () => {
-            updateStatusDot(false);
-            setTimeout(connectMQTT, 5000);
-        }
+        onFailure: () => setTimeout(connectMQTT, 5000)
     });
 }
 
@@ -59,7 +46,7 @@ function checkPass() {
         document.getElementById('auth-screen').style.display = 'none';
         updateClock();
         connectMQTT();
-    } else { alert("ОШИБКА ПАРОЛЯ"); }
+    } else { alert("ОШИБКА"); }
 }
 
 mqtt.onMessageArrived = (m) => {
@@ -74,32 +61,28 @@ mqtt.onMessageArrived = (m) => {
     
     if(t === 'heater/mode/state') {
         states.mode = v;
-        const dashMode = document.getElementById('dash_mode_val');
-        const targetWater = document.getElementById('l_sp');
-        const targetRoom = document.getElementById('l_rt');
+        const dm = document.getElementById('dash_mode_val');
         
-        // Сброс всех стилей
-        [targetWater, targetRoom, dashMode].forEach(el => {
-            el.classList.remove('mode-auto-glow', 'mode-manual-glow', 'mode-off-glow');
-        });
+        // Очистка старых классов
+        ['m_auto_badge','m_manual_badge','m_off_badge'].forEach(id => document.getElementById(id).className = '');
+        dm.className = 'info-mode-status';
 
         if(v === 'auto') {
-            dashMode.innerText = "АВТОМАТ";
-            [targetWater, targetRoom, dashMode].forEach(el => el.classList.add('mode-auto-glow'));
+            document.getElementById('m_auto_badge').className = 'active-auto';
+            dm.innerText = "АВТОМАТ"; dm.style.color = "#58a6ff"; dm.style.borderColor = "#58a6ff";
             document.getElementById('lock_manual').classList.add('locked');
             document.getElementById('lock_auto').classList.remove('locked');
         } else if(v === 'manual') {
-            dashMode.innerText = "РУЧНОЙ";
-            [targetWater, targetRoom, dashMode].forEach(el => el.classList.add('mode-manual-glow'));
+            document.getElementById('m_manual_badge').className = 'active-manual';
+            dm.innerText = "РУЧНОЙ"; dm.style.color = "#238636"; dm.style.borderColor = "#238636";
             document.getElementById('lock_manual').classList.remove('locked');
             document.getElementById('lock_auto').classList.add('locked');
         } else {
-            dashMode.innerText = "ВЫКЛЮЧЕН";
-            dashMode.classList.add('mode-off-glow');
+            document.getElementById('m_off_badge').className = 'active-off';
+            dm.innerText = "ВЫКЛ"; dm.style.color = "#da3633"; dm.style.borderColor = "#da3633";
             document.getElementById('lock_manual').classList.add('locked');
             document.getElementById('lock_auto').classList.add('locked');
         }
-
         ['auto','manual','off'].forEach(x => {
             if(document.getElementById('m_'+x)) document.getElementById('m_'+x).className = (v===x?'active':'');
         });
@@ -108,10 +91,7 @@ mqtt.onMessageArrived = (m) => {
     if(t === 'heater/power_percent') {
         document.getElementById('pwr').innerText = v;
         document.getElementById('st_r1').className = (parseInt(v) > 0) ? 'badge active' : 'badge';
-        const waterT = parseFloat(document.getElementById('t_water').innerText) || 0;
-        document.getElementById('st_pmp').className = (parseInt(v) > 0 || waterT > 26 || states.r2 || states.r3) ? 'badge active' : 'badge';
     }
-
     if(t === 'heater/relay2/state') { states.r2 = parseInt(v); updateToggle('sw_r2', 'st_r2', states.r2); }
     if(t === 'heater/relay3/state') { states.r3 = parseInt(v); updateToggle('sw_r3', 'st_r3', states.r3); }
     if(t === 'heater/setpoint/state') { document.getElementById('l_sp').innerText = v; document.getElementById('r_sp').value = v; }
@@ -123,13 +103,11 @@ mqtt.onMessageArrived = (m) => {
 };
 
 function updateToggle(btnId, badgeId, state) {
-    const btn = document.getElementById(btnId); const badge = document.getElementById(badgeId);
-    if(btn) btn.className = state ? "toggle-btn is-on" : "toggle-btn";
-    if(badge) badge.className = state ? "badge active" : "badge";
+    document.getElementById(btnId).className = state ? "toggle-btn is-on" : "toggle-btn";
+    document.getElementById(badgeId).className = state ? "badge active" : "badge";
 }
 
 function toggleRelay(topic, key) { if (states.mode === 'manual') send(topic, states[key] ? 0 : 1); }
-
 function send(topic, val) { 
     if(mqtt && mqtt.isConnected()) {
         let msg = new Paho.MQTT.Message(String(val)); msg.destinationName = topic; mqtt.send(msg); 
