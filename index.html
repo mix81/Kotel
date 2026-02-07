@@ -40,9 +40,13 @@
             </div>
             
             <div class="card-temp-main">
-                <div class="temp-wrapper">
-                    <span id="dash_t_water">--</span><span class="unit">°</span>
-                    <span id="dash_t_setpoint" class="temp-target">--</span>
+                <div class="temp-row-split">
+                    <div class="temp-left">
+                        <span id="dash_t_water">--</span><span class="deg-up">°</span>
+                    </div>
+                    <div class="temp-right">
+                        <span id="dash_t_setpoint" class="temp-target">--</span><span class="deg-up target-deg">°</span>
+                    </div>
                 </div>
             </div>
 
@@ -58,8 +62,7 @@
         <div class="weather-mini">
             <span>НА УЛИЦЕ:</span>
             <span id="t_out_val" class="t-out">--</span><span class="unit">°C</span>
-            <div id="dot-main-dash" class="status-dot"></div>
-        </div>
+            </div>
     </div>
 
     <div id="overlay" onclick="closeControl()"></div>
