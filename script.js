@@ -38,23 +38,35 @@ function checkPass() {
 
 mqtt.onMessageArrived = (m) => {
     const t = m.destinationName; const v = m.payloadString;
+    
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
     if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
+    
     if(t === 'heater/mode/state') {
         states.mode = v;
         ['auto','manual','off'].forEach(x => {
             document.getElementById('m_'+x).className = (v===x?'active':'');
             document.getElementById('badge_'+x).classList.toggle('active', v === x);
         });
+
+        // Подсветка целей в зависимости от режима
+        const targetWater = document.getElementById('l_sp');
+        const targetRoom = document.getElementById('l_rt');
+        
+        targetWater.classList.toggle('active-manual', v === 'manual');
+        targetRoom.classList.toggle('active-auto', v === 'auto');
+
         document.getElementById('card_auto').classList.toggle('locked', v !== 'auto');
         document.getElementById('manual_zone').parentElement.classList.toggle('locked', v === 'auto');
     }
+
     if(t === 'heater/power_percent') {
         document.getElementById('pwr').innerText = v;
         document.getElementById('st_r1').className = (parseInt(v) > 0) ? 'badge active' : 'badge';
         const waterT = parseFloat(document.getElementById('t_water').innerText) || 0;
         document.getElementById('st_pmp').className = (parseInt(v) > 0 || waterT > 26 || states.r2 || states.r3) ? 'badge active' : 'badge';
     }
+
     if(t === 'heater/relay2/state') { states.r2 = parseInt(v); updateToggle('sw_r2', 'st_r2', states.r2); }
     if(t === 'heater/relay3/state') { states.r3 = parseInt(v); updateToggle('sw_r3', 'st_r3', states.r3); }
     if(t === 'heater/setpoint/state') { document.getElementById('l_sp').innerText = v; document.getElementById('r_sp').value = v; }
@@ -81,6 +93,6 @@ function send(topic, val) {
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => console.log('SW OK')).catch(err => console.log('SW Err', err));
+        navigator.serviceWorker.register('sw.js').then(reg => console.log('SW OK')).catch(err => console.log('SW Error', err));
     });
 }
