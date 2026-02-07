@@ -1,12 +1,45 @@
-<div class="pwr-info">Мощность ТЭН 1: <span id="pwr">0</span>%</div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Heating Pro Elite v5.5</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+</head>
+<body>
+    <div id="auth-screen">
+        <div class="auth-container">
+            <i class="fa-solid fa-house-chimney blue-house"></i>
+            <div class="fazenda-badge">ФАЗЕНДА <span id="dot-auth" class="status-dot"></span></div>
+            <input type="password" id="passInput" placeholder="ПАРОЛЬ">
+            <button class="enter-btn" onclick="checkPass()">ВОЙТИ</button>
+        </div>
+    </div>
+
+    <div id="app-content">
+        <div class="card">
+            <h3>Состояние <span id="dot-main" class="status-dot"></span></h3>
+            <div id="badge_auto" class="mode-badge badge-auto">AUTO</div>
+            <div id="badge_manual" class="mode-badge badge-manual">MANUAL</div>
+            <div id="badge_off" class="mode-badge badge-off">OFF</div>
             
+            <div class="temp-row">
+                <div class="val-display"><span id="t_water">--</span><small>°C</small></div>
+                <div class="out-temp-box">
+                    <div class="label-mini">Улица</div>
+                    <div class="temp-mini"><span id="t_out_val">--</span><small>°</small></div>
+                </div>
+            </div>
+            <div class="pwr-info">Мощность ТЭН 1: <span id="pwr">0</span>%</div>
             <div class="grid-status">
                 <div id="st_r1" class="badge">ТЭН 1</div>
                 <div id="st_pmp" class="badge">НАСОС</div>
                 <div id="st_r2" class="badge">ТЭН 2</div>
                 <div id="st_r3" class="badge">ТЭН 3</div>
             </div>
-
             <div class="pwr-total">Мощность котла: <span id="pwr_total">0</span> Вт</div>
         </div>
 
@@ -19,7 +52,7 @@
             </div>
             <div class="control-section">
                 <div class="range-info"><span>Цель (Вода):</span><b id="l_sp" class="val-highlight">--</b></div>
-                <div class="ctrl-to-lock" id="lock_manual">
+                <div id="lock_manual" class="ctrl-to-lock">
                     <input type="range" min="20" max="75" id="r_sp" oninput="document.getElementById('l_sp').innerText=this.value" onchange="send('heater/setpoint/set', this.value)">
                     <div class="relay-item"><span>ТЭН Ступень 2</span><button id="sw_r2" class="toggle-btn" onclick="toggleRelay('heater/relay2/set', 'r2')"></button></div>
                     <div class="relay-item"><span>ТЭН Ступень 3</span><button id="sw_r3" class="toggle-btn" onclick="toggleRelay('heater/relay3/set', 'r3')"></button></div>
@@ -31,7 +64,7 @@
             <h3>Параметры ПЗА</h3>
             <div class="control-section">
                 <div class="range-info"><span>Цель в комнате:</span><b id="l_rt" class="val-highlight">--</b></div>
-                <div class="ctrl-to-lock" id="lock_auto">
+                <div id="lock_auto" class="ctrl-to-lock">
                     <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
                     <div class="input-inline"><span>Кривая (K-Factor):</span><input type="number" step="0.05" id="i_kf" onchange="send('heater/k_factor/set', this.value)"></div>
                     <div class="pid-grid">
@@ -42,3 +75,7 @@
                 </div>
             </div>
         </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
