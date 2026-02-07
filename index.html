@@ -44,14 +44,23 @@
         <div class="close-panel" onclick="closeControl()"><i class="fa-solid fa-xmark"></i></div>
         
         <div class="card">
-            <h3>Состояние</h3>
-            <div class="temp-row">
-                <div class="val-display"><span id="t_water">--</span><small>°C</small></div>
-                <div class="out-temp-box">
-                    <div class="label-mini">Улица</div>
-                    <div class="temp-mini"><span id="t_out_val">--</span><small>°</small></div>
+            <div class="card-header">
+                <h3>Состояние</h3>
+                <div class="mode-badges">
+                    <span id="m_auto_badge">AUTO</span>
+                    <span id="m_manual_badge">MANUAL</span>
+                    <span id="m_off_badge">OFF</span>
                 </div>
             </div>
+            
+            <div class="temp-main-row">
+                <div class="val-display"><span id="t_water">--</span><small>°C</small></div>
+                <div class="out-temp-box">
+                    <span class="label-mini">Улица</span>
+                    <span class="temp-mini"><span id="t_out_val">--</span>°</span>
+                </div>
+            </div>
+
             <div class="pwr-info">Мощность ТЭН 1: <span id="pwr">0</span>%</div>
             <div class="grid-status">
                 <div id="st_r1" class="badge">ТЭН 1</div>
