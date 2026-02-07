@@ -1,11 +1,11 @@
 {
-  "name": "Heating Pro Elite",
+  "name": "Heating Pro Fazenda",
   "short_name": "Fazenda",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
-  "orientation": "portrait",
+  "orientation": "any",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/553/553376.png",
