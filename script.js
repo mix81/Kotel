@@ -41,7 +41,7 @@ mqtt.onMessageArrived = (m) => {
     
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
     if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
-    if(t === 'Dom/mojnost/kot') document.getElementById('pwr_total').innerText = v;
+    if(t === 'dom/mojnost/kot') document.getElementById('pwr_total').innerText = v;
     
     if(t === 'heater/mode/state') {
         states.mode = v;
