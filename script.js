@@ -38,35 +38,24 @@ function closeControl() {
     }, 400);
 }
 
-function updateStatusDot(online) {
-    ['dot-auth', 'dot-main', 'dot-main-dash'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.classList.toggle('online', online);
-    });
-}
-
 function connectMQTT() {
     mqtt.connect({ 
         userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
-            updateStatusDot(true);
+            ['dot-auth', 'dot-main'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add('online');
+            });
             mqtt.subscribe("heater/#"); 
             mqtt.subscribe("dom/tempUlica");
-        },
-        onFailure: (e) => {
-            updateStatusDot(false);
-            setTimeout(connectMQTT, 5000);
         }
     });
 }
-
-mqtt.onConnectionLost = () => { updateStatusDot(false); setTimeout(connectMQTT, 5000); };
 
 mqtt.onMessageArrived = (m) => {
     const t = m.destinationName; 
     const v = m.payloadString;
     
-    // Температуры
     if(t === 'heater/temperature') {
         if(document.getElementById('t_water')) document.getElementById('t_water').innerText = v;
         if(document.getElementById('dash_t_water')) document.getElementById('dash_t_water').innerText = v;
@@ -79,8 +68,6 @@ mqtt.onMessageArrived = (m) => {
     if(t === 'dom/tempUlica') {
         if(document.getElementById('t_out_val')) document.getElementById('t_out_val').innerText = v;
     }
-    
-    // Режимы и анимация
     if(t === 'heater/mode/state') {
         states.mode = v;
         const dm = document.getElementById('dash_mode_val');
@@ -92,17 +79,11 @@ mqtt.onMessageArrived = (m) => {
         }
         ['auto','manual','off'].forEach(x => {
             const btn = document.getElementById('m_'+x);
-            const bdg = document.getElementById('badge_'+x);
             if(btn) btn.classList.toggle('active', v === x);
-            if(bdg) bdg.classList.toggle('active', v === x);
         });
         const cardAuto = document.getElementById('card_auto');
-        const manZone = document.getElementById('manual_zone');
         if(cardAuto) cardAuto.classList.toggle('locked', v !== 'auto');
-        if(manZone) manZone.parentElement.classList.toggle('locked', v === 'auto');
     }
-
-    // ТЭНы и Мощность
     if(t === 'heater/power_percent') {
         if(document.getElementById('dash_pwr_val')) document.getElementById('dash_pwr_val').innerText = v + '%';
         if(document.getElementById('pwr')) document.getElementById('pwr').innerText = v;
@@ -119,16 +100,6 @@ mqtt.onMessageArrived = (m) => {
         if(document.getElementById('dot_r3')) document.getElementById('dot_r3').classList.toggle('active', states.r3 === 1);
         updateToggle('sw_r3', 'st_r3', states.r3); 
     }
-    
-    // Сервисные
-    if(t === 'heater/room_temp/state') { 
-        if(document.getElementById('l_rt')) document.getElementById('l_rt').innerText = v; 
-        if(document.getElementById('r_rt')) document.getElementById('r_rt').value = v; 
-    }
-    if(t === 'heater/k_factor/state') if(document.getElementById('i_kf')) document.getElementById('i_kf').value = v;
-    if(t === 'heater/kp/state') if(document.getElementById('i_kp')) document.getElementById('i_kp').value = v;
-    if(t === 'heater/ki/state') if(document.getElementById('i_ki')) document.getElementById('i_ki').value = v;
-    if(t === 'heater/kd/state') if(document.getElementById('i_kd')) document.getElementById('i_kd').value = v;
 };
 
 function updateToggle(btnId, badgeId, state) {
@@ -137,8 +108,6 @@ function updateToggle(btnId, badgeId, state) {
     if(btn) btn.className = state ? "toggle-btn is-on" : "toggle-btn";
     if(badge) badge.className = state ? "badge active" : "badge";
 }
-
-function toggleRelay(topic, key) { if (states.mode !== 'auto') send(topic, states[key] ? 0 : 1); }
 
 function send(topic, val) { 
     if(mqtt && mqtt.isConnected()) {
