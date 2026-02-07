@@ -1,3 +1,3 @@
-self.addEventListener('fetch', (event) => {
-  // Просто пропускает запросы, это минимум для PWA
+self.addEventListener('fetch', function(event) {
+    // Базовый обработчик для возможности установки PWA
 });
