@@ -7,14 +7,20 @@ const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
 let states = { r2: 0, r3: 0, mode: 'off', sp: 50, rt: 22 };
 let isDemo = false;
 
-// --- НОВАЯ СИСТЕМА ВХОДА ---
+// --- СИСТЕМА ВХОДА (ИСПРАВЛЕННАЯ) ---
 function checkPass() {
-    const pass = document.getElementById('passInput').value;
+    const input = document.getElementById('passInput');
+    if (!input) {
+        console.error("Поле ввода не найдено!");
+        return;
+    }
+    
+    const pass = input.value.trim(); // Убираем пробелы
     
     if (pass === "1902") {
-        startApp(false); // Реальный вход
+        startApp(false); // Реальный режим
     } else {
-        startApp(true);  // Демо-режим при любых других цифрах/тексте
+        startApp(true);  // Демо-режим для всего остального
     }
 }
 
@@ -22,7 +28,9 @@ function startApp(demo) {
     isDemo = demo;
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app-content').style.display = 'flex';
+    
     updateClock();
+    setInterval(updateClock, 1000);
 
     if (isDemo) {
         setupDemoMode();
@@ -31,25 +39,27 @@ function startApp(demo) {
     }
 }
 
-// --- ДЕМО-РЕЖИМ (СИМУЛЯЦИЯ) ---
+// --- ДЕМО-РЕЖИМ ---
 function setupDemoMode() {
     document.body.classList.add('demo-active');
     updateStatusDot(true);
     
-    // Заполняем экран фейковыми данными
-    document.getElementById('t_water').innerText = "42.3";
-    document.getElementById('t_out_val').innerText = "-8";
+    // Предустановка данных
+    document.getElementById('t_water').innerText = "45.0";
+    document.getElementById('t_out_val').innerText = "-10";
     document.getElementById('l_sp_dash').innerText = states.sp;
     document.getElementById('l_sp').innerText = states.sp;
     document.getElementById('l_rt').innerText = states.rt;
-    document.getElementById('pwr_val').innerText = "15%";
+    document.getElementById('pwr_val').innerText = "20%";
     updateUIMode('auto');
 
-    // Эффект "живых" датчиков (плавание температуры)
+    // Симуляция живых датчиков
     setInterval(() => {
-        let currentT = parseFloat(document.getElementById('t_water').innerText);
-        let drift = (Math.random() - 0.5) * 0.3;
-        document.getElementById('t_water').innerText = (currentT + drift).toFixed(1);
+        const tw = document.getElementById('t_water');
+        if (tw) {
+            let current = parseFloat(tw.innerText);
+            tw.innerText = (current + (Math.random() - 0.5) * 0.4).toFixed(1);
+        }
     }, 3000);
 }
 
@@ -68,13 +78,13 @@ function connectMQTT() {
 
 mqtt.onMessageArrived = (m) => {
     if (isDemo) return;
-    const t = m.destinationName; const v = m.payloadString;
+    const t = m.destinationName; 
+    const v = m.payloadString;
     
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
     if(t === 'dom/tempUlica') document.getElementById('t_out_val').innerText = v;
     if(t === 'heater/power_percent') document.getElementById('pwr_val').innerText = v + '%';
     if(t === 'heater/mode/state') updateUIMode(v);
-    
     if(t === 'heater/relay2/state') updateRelayUI('r2', v);
     if(t === 'heater/relay3/state') updateRelayUI('r3', v);
     
@@ -87,13 +97,14 @@ mqtt.onMessageArrived = (m) => {
         document.getElementById('l_rt').innerText = v; 
         document.getElementById('r_rt').value = v; 
     }
-    if(t === 'heater/k_factor/state') document.getElementById('i_kf').value = v;
-    if(t === 'heater/kp/state') document.getElementById('i_kp').value = v;
-    if(t === 'heater/ki/state') document.getElementById('i_ki').value = v;
-    if(t === 'heater/kd/state') document.getElementById('i_kd').value = v;
+    // Настройки PID
+    const fields = { 'k_factor': 'i_kf', 'kp': 'i_kp', 'ki': 'i_ki', 'kd': 'i_kd' };
+    for (let key in fields) {
+        if (t === `heater/${key}/state`) document.getElementById(fields[key]).value = v;
+    }
 };
 
-// --- УПРАВЛЕНИЕ И ИНТЕРФЕЙС ---
+// --- ИНТЕРФЕЙС ---
 function updateUIMode(m) {
     states.mode = m;
     ['auto','manual','off'].forEach(x => {
@@ -122,7 +133,9 @@ function send(t, v) {
         return;
     }
     if(mqtt && mqtt.isConnected()) { 
-        let m = new Paho.MQTT.Message(String(v)); m.destinationName = t; mqtt.send(m); 
+        let m = new Paho.MQTT.Message(String(v)); 
+        m.destinationName = t; 
+        mqtt.send(m); 
     } 
 }
 
@@ -137,10 +150,11 @@ function toggleRelay(t, k) {
 
 function updateClock() {
     const now = new Date();
-    document.getElementById('clock-time').innerText = now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
-    document.getElementById('clock-date').innerText = now.toLocaleDateString('ru-RU', {weekday: 'long', day: 'numeric', month: 'long'});
+    const t = document.getElementById('clock-time');
+    const d = document.getElementById('clock-date');
+    if(t) t.innerText = now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'});
+    if(d) d.innerText = now.toLocaleDateString('ru-RU', {weekday: 'long', day: 'numeric', month: 'long'});
 }
-setInterval(updateClock, 1000);
 
 function openOverlay() {
     document.getElementById('dashboard-view').classList.add('blur-bg');
