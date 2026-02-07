@@ -3,93 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fazenda Home OS v5.14</title>
+    <title>Fazenda Control</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 </head>
 <body>
+
     <div id="auth-screen">
-        <div class="auth-container">
-            <i class="fa-solid fa-house-chimney blue-house"></i>
-            <div class="fazenda-badge">
-                ФАЗЕНДА <span id="dot-auth" class="status-dot"></span>
+        <div class="auth-card">
+            <div class="house-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/>
+                    <path d="M9 21V12h6v9"/>
+                </svg>
+                <div class="status-badge">ФАЗЕНДА</div>
             </div>
-            <input type="password" id="passInput" placeholder="ПАРОЛЬ">
-            <button class="enter-btn" onclick="checkPass()">ВОЙТИ</button>
+            <input type="password" id="passInput" placeholder="ПАРОЛЬ" autofocus>
+            <button onclick="checkPass()">ВОЙТИ</button>
+            <div class="auth-status">
+                <div id="dot-auth" class="status-dot"></div>
+                <span>СИСТЕМА ГОТОВА</span>
+            </div>
         </div>
     </div>
 
-    <div id="main-dashboard">
+    <div id="main-dashboard" class="dashboard-container">
         <div class="clock-section">
             <div id="clock-time">00:00:00</div>
-            <div id="clock-date">-- -- ----</div>
+            <div id="clock-date">Загрузка...</div>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="info-card-wrap" onclick="openControl()">
-                <div class="info-card-header">КОТЕЛ <span id="dot-main-dash" class="status-dot"></span></div>
-                <div class="info-card-body">
-                    <div class="info-temp"><span id="dash_t_water">--</span><small>°C</small></div>
-                    <div id="dash_mode_val" class="info-mode-badge">---</div>
-                </div>
-                <div class="info-card-footer">Управление системой</div>
+        <div class="main-card" onclick="openControl()">
+            <div class="card-header">
+                <span class="card-title">ОТОПЛЕНИЕ</span>
+                <div id="dash_mode_val" class="mode-badge-dash">---</div>
             </div>
+            
+            <div class="card-temp-main">
+                <div class="temp-wrapper">
+                    <span id="dash_t_water">--</span><span class="unit">°</span>
+                    <span id="dash_t_setpoint" class="temp-target">--</span>
+                </div>
+            </div>
+
+            <div class="card-footer-indicators">
+                <span id="dash_pwr_val">0%</span>
+                <div class="heater-dots">
+                    <div id="dot_r2" class="t-dot"></div>
+                    <div id="dot_r3" class="t-dot"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="weather-mini">
+            <span>НА УЛИЦЕ:</span>
+            <span id="t_out_val" class="t-out">--</span><span class="unit">°C</span>
+            <div id="dot-main-dash" class="status-dot"></div>
         </div>
     </div>
 
     <div id="overlay" onclick="closeControl()"></div>
-    <div id="app-content">
-        <div class="close-panel" onclick="closeControl()"><i class="fa-solid fa-xmark"></i></div>
-        
-        <div class="card">
-            <h3>Состояние <span id="dot-main" class="status-dot"></span></h3>
-            
-            <div id="badge_auto" class="mode-badge badge-auto">AUTO</div>
-            <div id="badge_manual" class="mode-badge badge-manual">MANUAL</div>
-            <div id="badge_off" class="mode-badge badge-off">OFF</div>
-            
-            <div class="temp-row">
-                <div class="val-display"><span id="t_water">--</span><small style="font-size:18px; color:var(--accent)">°C</small></div>
-                <div class="out-temp-box">
-                    <div style="font-size: 9px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px;">Улица</div>
-                    <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;"><span id="t_out_val">--</span><small style="font-size: 14px;">°</small></div>
-                </div>
+    
+    <div id="app-content" class="side-panel">
+        <div class="panel-header">
+            <div class="header-info">
+                <h2>УПРАВЛЕНИЕ КОТЛОМ</h2>
+                <div id="dot-main" class="status-dot online"></div>
             </div>
-            
-            <div style="text-align:center; font-size: 11px; color: #58a6ff; margin-bottom: 20px; opacity: 0.8;">Мощность ТЭН 1: <span id="pwr">0</span>%</div>
-            
-            <div class="grid-status">
-                <div id="st_r1" class="badge">ТЭН 1</div><div id="st_pmp" class="badge">НАСОС</div><div id="st_r2" class="badge">ТЭН 2</div><div id="st_r3" class="badge">ТЭН 3</div>
-            </div>
+            <button class="close-btn" onclick="closeControl()">&times;</button>
         </div>
 
-        <div class="card" id="card_control">
-            <h3>Управление</h3>
-            <div class="btn-group">
-                <button id="m_auto" onclick="send('heater/mode/set','auto')">АВТО</button>
-                <button id="m_manual" onclick="send('heater/mode/set','manual')">РУЧНОЙ</button>
-                <button id="m_off" onclick="send('heater/mode/set','off')">ВЫКЛ</button>
-            </div>
-            <div id="manual_zone" class="ctrl-to-lock">
-                <div style="display:flex; justify-content:space-between; font-size:12px; color:#8b949e; margin-top:10px;"><span>Цель (Вода):</span><b id="l_sp" style="color:#fff">--</b></div>
-                <input type="range" min="20" max="75" id="r_sp" oninput="document.getElementById('l_sp').innerText=this.value" onchange="send('heater/setpoint/set', this.value)">
-                <div class="relay-item"><span>ТЭН Ступень 2</span><button id="sw_r2" class="toggle-btn" onclick="toggleRelay('heater/relay2/set', 'r2')"></button></div>
-                <div class="relay-item"><span>ТЭН Ступень 3</span><button id="sw_r3" class="toggle-btn" onclick="toggleRelay('heater/relay3/set', 'r3')"></button></div>
-            </div>
-        </div>
-
-        <div class="card" id="card_auto">
-            <h3>Параметры ПЗА</h3>
-            <div class="ctrl-to-lock">
-                <div style="font-size:12px; margin-bottom:8px; color:#8b949e;">Цель в комнате: <b id="l_rt" style="color:#fff">--</b>°C</div>
-                <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
-                <div style="display:flex; justify-content:space-between; margin-top: 15px; font-size: 12px; align-items: center;"><span>Кривая (K-Factor):</span><input type="number" step="0.05" id="i_kf" onchange="send('heater/k_factor/set', this.value)"></div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; border-top:1px solid #333; padding-top:20px; margin-top:20px; text-align: center;">
-                    <div><small style="color:#555">Kp</small><br><input type="number" id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
-                    <div><small style="color:#555">Ki</small><br><input type="number" id="i_ki" onchange="send('heater/ki/set', this.value)"></div>
-                    <div><small style="color:#555">Kd</small><br><input type="number" id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
+        <div class="scroll-area">
+            <div class="hero-card">
+                <div class="temp-big">
+                    <span id="t_water">--</span><span class="deg">°</span>
                 </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="label">МОЩНОСТЬ</span>
+                        <span class="value"><span id="pwr">0</span>%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">СТАТУС</span>
+                        <div class="badges">
+                            <div id="st_r1" class="badge">Т1</div>
+                            <div id="st_r2" class="badge">Т2</div>
+                            <div id="st_r3" class="badge">Т3</div>
+                            <div id="st_pmp" class="badge">НАСОС</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">РЕЖИМ РАБОТЫ</div>
+            <div class="mode-selector">
+                <div id="m_auto" class="mode-btn" onclick="send('heater/mode/set','auto')">
+                    <span class="m-icon">A</span>
+                    <span class="m-label">АВТО</span>
+                    <div id="badge_auto" class="m-indicator"></div>
+                </div>
+                <div id="m_manual" class="mode-btn" onclick="send('heater/mode/set','manual')">
+                    <span class="m-icon">M</span>
+                    <span class="m-label">РУЧНОЙ</span>
+                    <div id="badge_manual" class="m-indicator"></div>
+                </div>
+                <div id="m_off" class="mode-btn" onclick="send('heater/mode/set','off')">
+                    <span class="m-icon">✕</span>
+                    <span class="m-label">ВЫКЛ</span>
+                    <div id="badge_off" class="m-indicator"></div>
+                </div>
+            </div>
+
+            <div id="card_auto" class="control-card">
+                <div class="card-row">
+                    <span>УСТАВКА ВОДЫ</span>
+                    <div class="stepper">
+                        <span id="l_sp" class="step-val">--</span>
+                        <input type="range" id="r_sp" min="20" max="75" onchange="send('heater/setpoint/set',this.value)">
+                    </div>
+                </div>
+                <div class="card-row">
+                    <span>ПОМЕЩЕНИЕ</span>
+                    <div class="stepper">
+                        <span id="l_rt" class="step-val">--</span>
+                        <input type="range" id="r_rt" min="5" max="30" step="0.5" onchange="send('heater/room_temp/set',this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-card">
+                <div id="manual_zone" class="manual-grid">
+                    <div class="man-item">
+                        <span>ТЭН 2</span>
+                        <div id="sw_r2" class="toggle-btn" onclick="toggleRelay('heater/relay2/set','r2')"></div>
+                    </div>
+                    <div class="man-item">
+                        <span>ТЭН 3</span>
+                        <div id="sw_r3" class="toggle-btn" onclick="toggleRelay('heater/relay3/set','r3')"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pid-section">
+                <div class="pid-row"><span>K-FACTOR</span><input type="number" id="i_kf" onchange="send('heater/k_factor/set',this.value)"></div>
+                <div class="pid-row"><span>Kp</span><input type="number" id="i_kp" onchange="send('heater/kp/set',this.value)"></div>
+                <div class="pid-row"><span>Ki</span><input type="number" id="i_ki" onchange="send('heater/ki/set',this.value)"></div>
+                <div class="pid-row"><span>Kd</span><input type="number" id="i_kd" onchange="send('heater/kd/set',this.value)"></div>
             </div>
         </div>
     </div>
