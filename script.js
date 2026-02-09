@@ -96,7 +96,9 @@ function updateBoilerMode(m) {
 function send(t, v) {
     const msg = new Paho.MQTT.Message(String(v));
     msg.destinationName = t;
+    msg.retained = true; // Теперь брокер запомнит последнее действие
     mqtt.send(msg);
+    console.log(`Отправлено: ${t} -> ${v} (Retain: true)`); // Добавил лог для проверки в консоли
 }
 
 function openOverlay(id) {
