@@ -3,14 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heating Pro Fazenda</title>
+    <title>Heating Pro - Final Master</title>
     
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d1117">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
-
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 </head>
 <body>
@@ -25,17 +22,17 @@
     </div>
 
     <div id="app-content">
-        <div id="dashboard-view">
-            <div class="clock-container">
-                <div id="clock-time">00:00</div>
-                <div id="clock-date">...</div>
-            </div>
+        <div class="clock-container">
+            <div id="clock-time">00:00</div>
+            <div id="clock-date">...</div>
+        </div>
 
-            <div class="card" id="main-dash-card" onclick="openOverlay()">
-                <h3>Котел <span id="dot-main" class="status-dot"></span></h3>
-                <div id="badge_auto" class="mode-badge badge-auto">AUTO</div>
-                <div id="badge_manual" class="mode-badge badge-manual">MANUAL</div>
-                <div id="badge_off" class="mode-badge badge-off">OFF</div>
+        <div class="cards-grid">
+            <div class="card" onclick="openOverlay('boiler-overlay')">
+                <h3>Котел <span id="dot-boiler" class="status-dot"></span></h3>
+                <div id="badge_auto" class="mode-badge" style="color: var(--accent);">AUTO</div>
+                <div id="badge_manual" class="mode-badge" style="color: var(--on);">MANUAL</div>
+                <div id="badge_off" class="mode-badge" style="color: var(--off);">OFF</div>
                 <div class="temp-row">
                     <div class="val-display"><span id="t_water">--</span><small>°</small></div>
                     <div class="target-box">
@@ -47,53 +44,88 @@
                     <div id="st_r2_dash" class="badge">ТЭН 2</div>
                     <div id="st_r3_dash" class="badge">ТЭН 3</div>
                 </div>
-                <div class="pwr-badge">Мощность ТЭН 1: <span id="pwr_val">--%</span></div>
+                <div class="pwr-badge">ТЭН 1: <span id="pwr_val">--%</span></div>
             </div>
-        </div>
 
-        <div id="controls-overlay">
-            <div class="unified-card">
-                <div class="column">
-                    <h3 class="col-title">УПРАВЛЕНИЕ</h3>
-                    <div class="btn-group">
-                        <button id="m_auto" onclick="send('heater/mode/set','auto')">AUTO</button>
-                        <button id="m_manual" onclick="send('heater/mode/set','manual')">MANUAL</button>
-                        <button id="m_off" onclick="send('heater/mode/set','off')">OFF</button>
-                    </div>
-                    <div id="group_manual">
-                        <div class="ctrl-row"><span>Вода:</span><b id="l_sp">--</b></div>
-                        <input type="range" min="20" max="75" id="r_sp" oninput="document.getElementById('l_sp').innerText=this.value" onchange="sendSetpoint(this.value)">
-                        <div class="relay-item"><span>ТЭН 2</span><button id="sw_r2" class="toggle-btn" onclick="toggleRelay('heater/relay2/set', 'r2')"></button></div>
-                        <div class="relay-item"><span>ТЭН 3</span><button id="sw_r3" class="toggle-btn" onclick="toggleRelay('heater/relay3/set', 'r3')"></button></div>
+            <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
+                <h3>Зал <i class="fa-solid fa-couch" style="margin-left:5px; font-size:12px;"></i> <span id="dot-hall" class="status-dot"></span></h3>
+                <div class="temp-row">
+                    <div class="val-display"><span id="t_hall">--</span><small>°</small></div>
+                    <div class="target-box">
+                        <div class="target-label">Влажность</div>
+                        <div class="target-val"><span id="h_hall">--</span><small>%</small></div>
                     </div>
                 </div>
-                <div class="column-divider"></div>
-                <div class="column">
-                    <h3 class="col-title">ПЗА / УЛИЦА: <span id="t_out_val">--</span>°</h3>
-                    <div id="group_pza">
-                        <div class="ctrl-row">Цель комната: <b id="l_rt">--</b>°</div>
-                        <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
-                        <div class="kf-row">
-                            <span>K-Factor:</span>
-                            <input type="number" step="0.05" id="i_kf" onchange="send('heater/k_factor/set', this.value)">
-                        </div>
-                        <div class="pid-grid">
-                            <div><small>Kp</small><br><input type="number" step="0.1" id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
-                            <div><small>Ki</small><br><input type="number" step="0.01" id="i_ki" onchange="send('heater/ki/set', this.value)"></div>
-                            <div><small>Kd</small><br><input type="number" step="0.1" id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
-                        </div>
-                    </div>
+                <div class="grid-status">
+                    <div id="st_sv1_dash" class="badge">СВЕТ 1</div>
+                    <div id="st_sv2_dash" class="badge">СВЕТ 2</div>
                 </div>
+                <div class="pwr-badge">Свет: <span id="zal_light_status">...</span></div>
             </div>
-            <div class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</div>
         </div>
     </div>
 
+    <div id="boiler-overlay" class="overlay">
+        <div class="unified-card">
+            <div id="col-manual" class="column">
+                <h3 class="col-title">РУЧНОЕ УПРАВЛЕНИЕ</h3>
+                <div style="font-size:12px; margin-top:10px;">Вода цель: <b id="l_sp">--</b>°</div>
+                <input type="range" min="20" max="75" id="r_sp" oninput="document.getElementById('l_sp').innerText=this.value" onchange="send('heater/setpoint/set', this.value)">
+                <div class="relay-item"><span>ТЭН 2</span><button id="sw_r2" class="toggle-btn" onclick="send('heater/relay2/set', states.r2?0:1)"></button></div>
+                <div class="relay-item"><span>ТЭН 3</span><button id="sw_r3" class="toggle-btn" onclick="send('heater/relay3/set', states.r3?0:1)"></button></div>
+            </div>
+            
+            <div class="column-divider"></div>
+
+            <div class="column" style="flex: 0.6; align-items: center; justify-content: center;">
+                <h3 class="col-title">РЕЖИМ</h3>
+                <div class="btn-group" style="flex-direction: column; width: 100%;">
+                    <button id="m_auto" onclick="send('heater/mode/set','auto')">AUTO</button>
+                    <button id="m_manual" onclick="send('heater/mode/set','manual')">MANUAL</button>
+                    <button id="m_off" onclick="send('heater/mode/set','off')">OFF</button>
+                </div>
+            </div>
+
+            <div class="column-divider"></div>
+
+            <div id="col-pza" class="column">
+                <h3 class="col-title">ПЗА / PID (УЛИЦА: <span id="t_out">--</span>°)</h3>
+                <div style="font-size:12px;">Комната цель: <b id="l_rt">--</b>°</div>
+                <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
+                <div style="font-size:12px;">K-Factor: <b id="l_kf">--</b></div>
+                <input type="range" min="0.5" max="3.0" step="0.1" id="r_kf" oninput="document.getElementById('l_kf').innerText=this.value" onchange="send('heater/k_factor/set', this.value)">
+                <div class="pid-grid">
+                    <div><small>Kp</small><input type="number" step="0.1" id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
+                    <div><small>Ki</small><input type="number" step="0.01" id="i_ki" onchange="send('heater/ki/set', this.value)"></div>
+                    <div><small>Kd</small><input type="number" step="0.1" id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
+                </div>
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+    </div>
+
+    <div id="hall-overlay" class="overlay">
+        <div class="unified-card">
+            <div class="column">
+                <h3 class="col-title">КЛИМАТ ЗАЛА</h3>
+                <div class="temp-row" style="margin-top:20px;">
+                    <div class="val-display"><span id="t_hall_ov">--</span><small>°</small></div>
+                    <div class="target-box">
+                        <div class="target-label">Влажность</div>
+                        <div class="target-val"><span id="h_hall_ov">--</span><small>%</small></div>
+                    </div>
+                </div>
+            </div>
+            <div class="column-divider"></div>
+            <div class="column">
+                <h3 class="col-title">СВЕТ ЗАЛА</h3>
+                <div class="relay-item"><span>Основной</span><button id="sw_sv1" class="toggle-btn" onclick="send('dom/svZal1', states.sv1?0:1)"></button></div>
+                <div class="relay-item" style="margin-top:10px;"><span>Дополнительный</span><button id="sw_sv2" class="toggle-btn" onclick="send('dom/svZal2', states.sv2?0:1)"></button></div>
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+    </div>
+
     <script src="script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
-        }
-    </script>
 </body>
 </html>
