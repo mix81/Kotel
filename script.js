@@ -9,6 +9,7 @@ const cfg = {
 const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
 let states = { r2:0, r3:0, sv1:0, sv2:0, mode:'off' };
 
+// Функция авторизации
 function checkPass() {
     if (document.getElementById('passInput').value === "1902") {
         document.getElementById('auth-screen').style.display = 'none';
@@ -17,23 +18,35 @@ function checkPass() {
     }
 }
 
+// Подключение к MQTT
 function connect() {
     mqtt.connect({ userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
-            mqtt.subscribe("heater/#"); mqtt.subscribe("dom/#");
+            console.log("MQTT Connected");
+            mqtt.subscribe("heater/#"); 
+            mqtt.subscribe("dom/#");
             ['dot-auth', 'dot-boiler', 'dot-hall'].forEach(id => {
                 if(document.getElementById(id)) document.getElementById(id).className = 'status-dot online';
             });
         },
-        onFailure: () => setTimeout(connect, 5000)
+        onFailure: () => {
+            console.log("MQTT Connection Failed, retrying...");
+            setTimeout(connect, 5000);
+        }
     });
 }
 
+// Обработка входящих сообщений
 mqtt.onMessageArrived = (m) => {
-    const t = m.destinationName; const v = m.payloadString;
+    const t = m.destinationName; 
+    const v = m.payloadString;
     
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
-    if(t === 'heater/setpoint/state') { document.getElementById('l_sp').innerText = v; document.getElementById('l_sp_dash').innerText = v; document.getElementById('r_sp').value = v; }
+    if(t === 'heater/setpoint/state') { 
+        document.getElementById('l_sp').innerText = v; 
+        document.getElementById('l_sp_dash').innerText = v; 
+        document.getElementById('r_sp').value = v; 
+    }
     if(t === 'heater/mode/state') updateBoilerMode(v);
     if(t === 'heater/relay2/state') updateItem('r2', v);
     if(t === 'heater/relay3/state') updateItem('r3', v);
@@ -50,6 +63,7 @@ mqtt.onMessageArrived = (m) => {
     if(t === 'dom/svZal2') updateItem('sv2', v);
 };
 
+// Обновление состояния элементов (кнопки, бейджи)
 function updateItem(key, val) {
     states[key] = parseInt(val);
     const btn = document.getElementById('sw_' + key);
@@ -69,6 +83,7 @@ function updateItem(key, val) {
     }
 }
 
+// Управление режимами котла и блокировкой UI
 function updateBoilerMode(m) {
     states.mode = m;
     ['auto','manual','off'].forEach(x => {
@@ -93,14 +108,16 @@ function updateBoilerMode(m) {
     }
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ (С ФЛАГОМ RETAIN)
 function send(t, v) {
     const msg = new Paho.MQTT.Message(String(v));
     msg.destinationName = t;
-    msg.retained = true; // Теперь брокер запомнит последнее действие
+    msg.retained = true; // Фиксация состояния на брокере
     mqtt.send(msg);
-    console.log(`Отправлено: ${t} -> ${v} (Retain: true)`); // Добавил лог для проверки в консоли
+    console.log(`MQTT SEND: ${t} -> ${v} (retained: true)`);
 }
 
+// Управление оверлеями
 function openOverlay(id) {
     Object.keys(states).forEach(key => {
         const btn = document.getElementById('sw_' + key);
@@ -123,6 +140,7 @@ function closeOverlay() {
     });
 }
 
+// Часы
 function updateClock() {
     const now = new Date();
     const timeEl = document.getElementById('clock-time');
