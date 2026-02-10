@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heating Pro - Final Master</title>
+    <title>Heating Pro - Fazenda PWA</title>
     
     <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0d1117">
-<link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
-    
+    <meta name="theme-color" content="#0d1117">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     
@@ -19,7 +19,7 @@
     <div id="auth-screen">
         <div class="auth-container">
             <i class="fa-solid fa-house-chimney blue-house"></i>
-            <div class="fazenda-badge">ФАЗЕНДА <span id="dot-auth" class="status-dot"></span></div>
+            <div class="fazenda-badge">ФАЗЕНДА</div>
             <input type="password" id="passInput" placeholder="ПАРОЛЬ">
             <button class="enter-btn" onclick="checkPass()">ВОЙТИ</button>
         </div>
@@ -33,15 +33,15 @@
 
         <div class="cards-grid">
             <div class="card" onclick="openOverlay('boiler-overlay')">
-                <h3>Котел <span id="dot-boiler" class="status-dot"></span></h3>
+                <h3>Котел</h3>
                 <div id="badge_auto" class="mode-badge" style="color: var(--accent);">AUTO</div>
                 <div id="badge_manual" class="mode-badge" style="color: var(--on);">MANUAL</div>
                 <div id="badge_off" class="mode-badge" style="color: var(--off);">OFF</div>
                 <div class="temp-row">
-                    <div class="val-display"><span id="t_water">--</span><small>°</small></div>
+                    <div class="val-display"><span id="t_water">--</span><span class="deg">°</span></div>
                     <div class="target-box">
                         <div class="target-label">Цель</div>
-                        <div class="target-val"><span id="l_sp_dash">--</span><small>°</small></div>
+                        <div class="target-val"><span id="l_sp_dash">--</span><span class="deg">°</span></div>
                     </div>
                 </div>
                 <div class="grid-status">
@@ -52,19 +52,20 @@
             </div>
 
             <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
-                <h3>Зал <i class="fa-solid fa-couch" style="margin-left:5px; font-size:12px;"></i> <span id="dot-hall" class="status-dot"></span></h3>
+                <div id="curtain-container" class="curtain-wrap">
+                    <i id="window-sensor" class="fa-solid fa-shield-halved"></i>
+                    <div id="curt-l" class="curtain-wing curtain-left"></div>
+                    <div id="curt-r" class="curtain-wing curtain-right"></div>
+                </div>
+                <h3>Зал <i class="fa-solid fa-couch" style="margin-left:5px; font-size:12px;"></i></h3>
                 <div class="temp-row">
-                    <div class="val-display"><span id="t_hall">--</span><small>°</small></div>
+                    <div class="val-display"><span id="t_hall">--</span><span class="deg">°</span></div>
                     <div class="target-box">
                         <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_hall">--</span><small>%</small></div>
+                        <div class="target-val"><span id="h_hall">--</span>%</div>
                     </div>
                 </div>
-                <div class="grid-status">
-                    <div id="st_sv1_dash" class="badge">СВЕТ 1</div>
-                    <div id="st_sv2_dash" class="badge">СВЕТ 2</div>
-                </div>
-                <div class="pwr-badge">Свет: <span id="zal_light_status">...</span></div>
+                <div id="curt-label-dash">Шторы: --%</div>
             </div>
         </div>
     </div>
@@ -78,9 +79,7 @@
                 <div class="relay-item"><span>ТЭН 2</span><button id="sw_r2" class="toggle-btn" onclick="send('heater/relay2/set', states.r2?0:1)"></button></div>
                 <div class="relay-item"><span>ТЭН 3</span><button id="sw_r3" class="toggle-btn" onclick="send('heater/relay3/set', states.r3?0:1)"></button></div>
             </div>
-            
             <div class="column-divider"></div>
-
             <div class="column" style="flex: 0.6; align-items: center; justify-content: center;">
                 <h3 class="col-title">РЕЖИМ</h3>
                 <div class="btn-group" style="flex-direction: column; width: 100%;">
@@ -89,12 +88,10 @@
                     <button id="m_off" onclick="send('heater/mode/set','off')">OFF</button>
                 </div>
             </div>
-
             <div class="column-divider"></div>
-
             <div id="col-pza" class="column">
-                <h3 class="col-title">ПЗА / PID (УЛИЦА: <span id="t_out">--</span>°)</h3>
-                <div style="font-size:12px;">Комната цель: <b id="l_rt">--</b>°</div>
+                <h3 class="col-title">ПЗА (УЛИЦА: <span id="t_out">--</span>°)</h3>
+                <div style="font-size:12px;">Комната: <b id="l_rt">--</b>°</div>
                 <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
                 <div style="font-size:12px;">K-Factor: <b id="l_kf">--</b></div>
                 <input type="range" min="0.5" max="3.0" step="0.1" id="r_kf" oninput="document.getElementById('l_kf').innerText=this.value" onchange="send('heater/k_factor/set', this.value)">
@@ -110,21 +107,32 @@
 
     <div id="hall-overlay" class="overlay">
         <div class="unified-card">
-            <div class="column">
-                <h3 class="col-title">КЛИМАТ ЗАЛА</h3>
-                <div class="temp-row" style="margin-top:20px;">
-                    <div class="val-display"><span id="t_hall_ov">--</span><small>°</small></div>
+            <div class="column" style="justify-content: center;">
+                <h3 class="col-title">СОСТОЯНИЕ</h3>
+                <div class="temp-row" style="margin: 0; justify-content: flex-start;">
+                    <div class="val-display"><span id="t_hall_ov">--</span><span class="deg">°</span></div>
                     <div class="target-box">
                         <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_hall_ov">--</span><small>%</small></div>
+                        <div class="target-val"><span id="h_hall_ov">--</span>%</div>
                     </div>
                 </div>
             </div>
             <div class="column-divider"></div>
-            <div class="column">
-                <h3 class="col-title">СВЕТ ЗАЛА</h3>
-                <div class="relay-item"><span>Основной</span><button id="sw_sv1" class="toggle-btn" onclick="send('dom/svZal1', states.sv1?0:1)"></button></div>
-                <div class="relay-item" style="margin-top:10px;"><span>Дополнительный</span><button id="sw_sv2" class="toggle-btn" onclick="send('dom/svZal2', states.sv2?0:1)"></button></div>
+            <div class="column" style="justify-content: center; gap: 12px;">
+                <div class="switch-row-box">
+                    <button id="sw_sv1" class="toggle-btn" onclick="send('dom/svZal1', states.sv1?0:1)"></button>
+                    <span class="label-inline">СВЕТ</span>
+                    <button id="sw_sv2" class="toggle-btn" onclick="send('dom/svZal2', states.sv2?0:1)"></button>
+                </div>
+                
+                <div id="window-status-text" class="status-row-box">ОКНО ЗАКРЫТО</div>
+
+                <div class="slider-row-box">
+                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: -5px; font-weight: bold; letter-spacing: 1px;">
+                        ШТОРЫ ЗАКРЫТИЕ: <b id="l_shtora">--</b>%
+                    </div>
+                    <input type="range" min="0" max="100" id="r_shtora" oninput="updateCurtainVisual(this.value); document.getElementById('l_shtora').innerText=this.value" onchange="send('dom/shtora/proc', this.value)">
+                </div>
             </div>
         </div>
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
