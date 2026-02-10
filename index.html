@@ -10,9 +10,8 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 </head>
 <body>
 
@@ -51,9 +50,8 @@
                 <div class="pwr-badge">ТЭН 1: <span id="pwr_val">--%</span></div>
             </div>
 
-            <div class="card glow-ready" id="card-hall" onclick="openOverlay('hall-overlay')">
+            <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
                 <div id="curtain-container" class="curtain-wrap">
-                    <i id="window-sensor" class="fa-solid fa-shield-halved window-sensor"></i>
                     <div id="curt-l" class="curtain-wing curtain-left"></div>
                     <div id="curt-r" class="curtain-wing curtain-right"></div>
                 </div>
@@ -68,10 +66,9 @@
                 <div id="curt-label-dash" class="curt-label-dash">Шторы: --%</div>
             </div>
 
-            <div class="card glow-ready" id="card-bedroom" onclick="openOverlay('bedroom-overlay')">
-                <i id="window-sensor-bed" class="fa-solid fa-shield-halved window-sensor" style="top:15px"></i>
+            <div class="card" id="card-bedroom" onclick="openOverlay('bedroom-overlay')">
                 <h3>Спальня <i class="fa-solid fa-bed" style="margin-left:5px; font-size:12px;"></i></h3>
-                <div class="temp-row" style="margin-top: 30px;">
+                <div class="temp-row" style="margin-top: 25px;">
                     <div class="val-display"><span id="t_bed">--</span><span class="deg">°</span></div>
                     <div class="target-box">
                         <div class="target-label">Влажность</div>
@@ -128,6 +125,7 @@
                         <div class="target-val"><span id="h_hall_ov">--</span>%</div>
                     </div>
                 </div>
+                <div id="window-status-text" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
             </div>
             <div class="column-divider"></div>
             <div class="column" style="justify-content: center; gap: 12px;">
@@ -136,7 +134,6 @@
                     <span class="label-inline">СВЕТ</span>
                     <button id="sw_sv2" class="toggle-btn" onclick="send('dom/svZal2', states.sv2?0:1)"></button>
                 </div>
-                <div id="window-status-text" class="status-row-box">ОКНО ЗАКРЫТО</div>
                 <div class="slider-row-box">
                     <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: -5px; font-weight: bold; letter-spacing: 1px;">
                         ШТОРЫ ЗАКРЫТИЕ: <b id="l_shtora">--</b>%
@@ -159,7 +156,7 @@
                         <div class="target-val"><span id="h_bed_ov">--</span>%</div>
                     </div>
                 </div>
-                <div id="window-status-text-bed" class="status-row-box">ОКНО ЗАКРЫТО</div>
+                <div id="window-status-text-bed" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
             </div>
             <div class="column-divider"></div>
             <div class="column" style="gap: 15px;">
@@ -175,7 +172,6 @@
                     </div>
                     <input type="range" min="0" max="100" id="r_bed_dim" onchange="send('dom/svSpalnyLamp/dim', this.value)">
                 </div>
-
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
@@ -201,13 +197,5 @@
     </div>
 
     <script src="script.js"></script>
-    <script>
-        // Регистрация Service Worker для PWA
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log('PWA Service Worker зарегистрирован'))
-                .catch(err => console.error('Ошибка SW:', err));
-        }
-    </script>
 </body>
 </html>
