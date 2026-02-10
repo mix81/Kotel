@@ -1,15 +1,11 @@
 const cfg = { 
-    h: 'm9.wqtt.ru', 
-    p: 13733, 
-    u: 'u_OCW7RS', 
-    w: 'tY9lf91e', 
+    h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', 
     id: 'PRO_' + Math.random().toString(16).substr(2,4) 
 };
 
 const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
 let states = { r2:0, r3:0, sv1:0, sv2:0, mode:'off' };
 
-// Функция авторизации
 function checkPass() {
     if (document.getElementById('passInput').value === "1902") {
         document.getElementById('auth-screen').style.display = 'none';
@@ -18,35 +14,20 @@ function checkPass() {
     }
 }
 
-// Подключение к MQTT
 function connect() {
     mqtt.connect({ userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
-            console.log("MQTT Connected");
-            mqtt.subscribe("heater/#"); 
-            mqtt.subscribe("dom/#");
-            ['dot-auth', 'dot-boiler', 'dot-hall'].forEach(id => {
-                if(document.getElementById(id)) document.getElementById(id).className = 'status-dot online';
-            });
+            mqtt.subscribe("heater/#"); mqtt.subscribe("dom/#");
         },
-        onFailure: () => {
-            console.log("MQTT Connection Failed, retrying...");
-            setTimeout(connect, 5000);
-        }
+        onFailure: () => setTimeout(connect, 5000)
     });
 }
 
-// Обработка входящих сообщений
 mqtt.onMessageArrived = (m) => {
-    const t = m.destinationName; 
-    const v = m.payloadString;
+    const t = m.destinationName; const v = m.payloadString;
     
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
-    if(t === 'heater/setpoint/state') { 
-        document.getElementById('l_sp').innerText = v; 
-        document.getElementById('l_sp_dash').innerText = v; 
-        document.getElementById('r_sp').value = v; 
-    }
+    if(t === 'heater/setpoint/state') { document.getElementById('l_sp').innerText = v; document.getElementById('l_sp_dash').innerText = v; document.getElementById('r_sp').value = v; }
     if(t === 'heater/mode/state') updateBoilerMode(v);
     if(t === 'heater/relay2/state') updateItem('r2', v);
     if(t === 'heater/relay3/state') updateItem('r3', v);
@@ -57,13 +38,43 @@ mqtt.onMessageArrived = (m) => {
     if(t === 'heater/kp/state') document.getElementById('i_kp').value = v;
     if(t === 'heater/ki/state') document.getElementById('i_ki').value = v;
     if(t === 'heater/kd/state') document.getElementById('i_kd').value = v;
+    
     if(t === 'dom/tempZal') { document.getElementById('t_hall').innerText = v; document.getElementById('t_hall_ov').innerText = v; }
     if(t === 'dom/vlagZal') { document.getElementById('h_hall').innerText = v; document.getElementById('h_hall_ov').innerText = v; }
     if(t === 'dom/svZal1') updateItem('sv1', v);
     if(t === 'dom/svZal2') updateItem('sv2', v);
+    
+    if(t === 'dom/shtora/proc') {
+        const p = parseInt(v);
+        document.getElementById('l_shtora').innerText = p;
+        document.getElementById('curt-label-dash').innerText = 'Шторы: ' + p + '%';
+        document.getElementById('r_shtora').value = p;
+        updateCurtainVisual(p);
+    }
+
+    if(t === 'dom/oknoZal') {
+        const wrap = document.getElementById('curtain-container');
+        const icon = document.getElementById('window-sensor');
+        const statusTxt = document.getElementById('window-status-text');
+        if(v == "1") {
+            wrap.classList.add('is-open');
+            icon.classList.add('alarm');
+            if(statusTxt) { statusTxt.innerText = "ОКНО ОТКРЫТО"; statusTxt.style.color = "var(--off)"; }
+        } else {
+            wrap.classList.remove('is-open');
+            icon.classList.remove('alarm');
+            if(statusTxt) { statusTxt.innerText = "ОКНО ЗАКРЫТО"; statusTxt.style.color = "var(--text)"; }
+        }
+    }
 };
 
-// Обновление состояния элементов (кнопки, бейджи)
+function updateCurtainVisual(val) {
+    const p = parseInt(val);
+    const offset = 100 - p; 
+    document.getElementById('curt-l').style.transform = `translateX(-${offset}%)`;
+    document.getElementById('curt-r').style.transform = `translateX(${offset}%)`;
+}
+
 function updateItem(key, val) {
     states[key] = parseInt(val);
     const btn = document.getElementById('sw_' + key);
@@ -72,18 +83,12 @@ function updateItem(key, val) {
     if(badge) badge.className = states[key] ? 'badge active' : 'badge';
     
     if(key.includes('sv')) {
-        const isAnyOn = states.sv1 || states.sv2;
         const hallCard = document.getElementById('card-hall');
-        const statusTxt = document.getElementById('zal_light_status');
-        if(hallCard) isAnyOn ? hallCard.classList.add('glow-active') : hallCard.classList.remove('glow-active');
-        if(statusTxt) {
-            statusTxt.innerText = isAnyOn ? "ВКЛ" : "ВЫКЛ";
-            statusTxt.style.color = isAnyOn ? "var(--on)" : "#8b949e";
-        }
+        if(states.sv1) hallCard.classList.add('glow-main'); else hallCard.classList.remove('glow-main');
+        if(states.sv2) hallCard.classList.add('glow-extra'); else hallCard.classList.remove('glow-extra');
     }
 }
 
-// Управление режимами котла и блокировкой UI
 function updateBoilerMode(m) {
     states.mode = m;
     ['auto','manual','off'].forEach(x => {
@@ -92,39 +97,19 @@ function updateBoilerMode(m) {
         if(btn) btn.className = (m === x ? 'active' : '');
         if(bge) bge.style.display = (m === x ? 'block' : 'none');
     });
-    
-    const colManual = document.getElementById('col-manual');
-    const colPza = document.getElementById('col-pza');
-    
-    if(m === 'auto') {
-        colManual.classList.add('locked-ui');
-        colPza.classList.remove('locked-ui');
-    } else if(m === 'manual') {
-        colManual.classList.remove('locked-ui');
-        colPza.classList.add('locked-ui');
-    } else {
-        colManual.classList.add('locked-ui');
-        colPza.classList.add('locked-ui');
-    }
+    const cm = document.getElementById('col-manual');
+    const cp = document.getElementById('col-pza');
+    if(m === 'auto') { cm.classList.add('locked-ui'); cp.classList.remove('locked-ui'); }
+    else if(m === 'manual') { cm.classList.remove('locked-ui'); cp.classList.add('locked-ui'); }
+    else { cm.classList.add('locked-ui'); cp.classList.add('locked-ui'); }
 }
 
-// ИСПРАВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ (С ФЛАГОМ RETAIN)
 function send(t, v) {
     const msg = new Paho.MQTT.Message(String(v));
-    msg.destinationName = t;
-    msg.retained = true; // Фиксация состояния на брокере
-    mqtt.send(msg);
-    console.log(`MQTT SEND: ${t} -> ${v} (retained: true)`);
+    msg.destinationName = t; msg.retained = true; mqtt.send(msg);
 }
 
-// Управление оверлеями
 function openOverlay(id) {
-    Object.keys(states).forEach(key => {
-        const btn = document.getElementById('sw_' + key);
-        if(btn) btn.className = states[key] ? 'toggle-btn is-on' : 'toggle-btn';
-    });
-    updateBoilerMode(states.mode);
-
     document.getElementById('app-content').classList.add('blurred');
     const ov = document.getElementById(id);
     ov.style.display = 'flex';
@@ -133,20 +118,14 @@ function openOverlay(id) {
 
 function closeOverlay() {
     document.getElementById('app-content').classList.remove('blurred');
-    const ovs = document.querySelectorAll('.overlay');
-    ovs.forEach(ov => {
-        ov.classList.remove('active');
-        setTimeout(() => ov.style.display = 'none', 500);
+    document.querySelectorAll('.overlay').forEach(ov => {
+        ov.classList.remove('active'); setTimeout(() => ov.style.display = 'none', 500);
     });
 }
 
-// Часы
 function updateClock() {
     const now = new Date();
-    const timeEl = document.getElementById('clock-time');
-    const dateEl = document.getElementById('clock-date');
-    if(timeEl) timeEl.innerText = now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
-    if(dateEl) dateEl.innerText = now.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'});
+    document.getElementById('clock-time').innerText = now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
+    document.getElementById('clock-date').innerText = now.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'});
 }
-setInterval(updateClock, 1000);
-updateClock();
+setInterval(updateClock, 1000); updateClock();
