@@ -4,7 +4,20 @@ const cfg = {
 };
 
 const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
-let states = { r2:0, r3:0, sv1:0, sv2:0, mode:'off' };
+let states = { r2:0, r3:0, sv1:0, sv2:0, svbed:0, svbed_rgb:0, mode:'off', bednoc: 0 };
+
+const colorMap = {
+    'red': 'rgba(255, 0, 0, 0.6)',
+    'green': 'rgba(0, 255, 0, 0.6)',
+    'blue': 'rgba(0, 0, 255, 0.6)',
+    'yellow': 'rgba(255, 255, 0, 0.6)',
+    'cyan': 'rgba(0, 255, 255, 0.6)',
+    'magenta': 'rgba(255, 0, 255, 0.6)',
+    'orange': 'rgba(255, 165, 0, 0.6)',
+    'purple': 'rgba(128, 0, 128, 0.6)',
+    'pink': 'rgba(255, 192, 203, 0.6)',
+    'white': 'rgba(255, 255, 255, 0.5)'
+};
 
 function checkPass() {
     if (document.getElementById('passInput').value === "1902") {
@@ -17,7 +30,8 @@ function checkPass() {
 function connect() {
     mqtt.connect({ userName: cfg.u, password: cfg.w, useSSL: true, 
         onSuccess: () => {
-            mqtt.subscribe("heater/#"); mqtt.subscribe("dom/#");
+            mqtt.subscribe("heater/#"); 
+            mqtt.subscribe("dom/#");
         },
         onFailure: () => setTimeout(connect, 5000)
     });
@@ -26,8 +40,13 @@ function connect() {
 mqtt.onMessageArrived = (m) => {
     const t = m.destinationName; const v = m.payloadString;
     
+    // Котел
     if(t === 'heater/temperature') document.getElementById('t_water').innerText = v;
-    if(t === 'heater/setpoint/state') { document.getElementById('l_sp').innerText = v; document.getElementById('l_sp_dash').innerText = v; document.getElementById('r_sp').value = v; }
+    if(t === 'heater/setpoint/state') { 
+        document.getElementById('l_sp').innerText = v; 
+        document.getElementById('l_sp_dash').innerText = v; 
+        document.getElementById('r_sp').value = v; 
+    }
     if(t === 'heater/mode/state') updateBoilerMode(v);
     if(t === 'heater/relay2/state') updateItem('r2', v);
     if(t === 'heater/relay3/state') updateItem('r3', v);
@@ -39,11 +58,11 @@ mqtt.onMessageArrived = (m) => {
     if(t === 'heater/ki/state') document.getElementById('i_ki').value = v;
     if(t === 'heater/kd/state') document.getElementById('i_kd').value = v;
     
+    // Зал
     if(t === 'dom/tempZal') { document.getElementById('t_hall').innerText = v; document.getElementById('t_hall_ov').innerText = v; }
     if(t === 'dom/vlagZal') { document.getElementById('h_hall').innerText = v; document.getElementById('h_hall_ov').innerText = v; }
     if(t === 'dom/svZal1') updateItem('sv1', v);
     if(t === 'dom/svZal2') updateItem('sv2', v);
-    
     if(t === 'dom/shtora/proc') {
         const p = parseInt(v);
         document.getElementById('l_shtora').innerText = p;
@@ -51,20 +70,32 @@ mqtt.onMessageArrived = (m) => {
         document.getElementById('r_shtora').value = p;
         updateCurtainVisual(p);
     }
+    if(t === 'dom/oknoZal') updateWindowStatus('card-hall', 'window-sensor', 'window-status-text', 'curtain-container', v);
 
-    if(t === 'dom/oknoZal') {
-        const wrap = document.getElementById('curtain-container');
-        const icon = document.getElementById('window-sensor');
-        const statusTxt = document.getElementById('window-status-text');
-        if(v == "1") {
-            wrap.classList.add('is-open');
-            icon.classList.add('alarm');
-            if(statusTxt) { statusTxt.innerText = "ОКНО ОТКРЫТО"; statusTxt.style.color = "var(--off)"; }
-        } else {
-            wrap.classList.remove('is-open');
-            icon.classList.remove('alarm');
-            if(statusTxt) { statusTxt.innerText = "ОКНО ЗАКРЫТО"; statusTxt.style.color = "var(--text)"; }
-        }
+    // Спальня
+    if(t === 'dom/tempKsu1') { document.getElementById('t_bed').innerText = v; document.getElementById('t_bed_ov').innerText = v; }
+    if(t === 'dom/vlagKsu') { document.getElementById('h_bed').innerText = v; document.getElementById('h_bed_ov').innerText = v; }
+    if(t === 'dom/oknoSpalny') updateWindowStatus('card-bedroom', 'window-sensor-bed', 'window-status-text-bed', null, v);
+    
+    // Основная лампа
+    if(t === 'dom/svSpalnyLamp/st') updateItem('svbed', v);
+    if(t === 'dom/svSpalnyLamp/dim') document.getElementById('r_bed_dim').value = v;
+    if(t === 'dom/svSpalnyLamp/noc') {
+        states.bednoc = parseInt(v);
+        document.getElementById('m_bed_day').className = states.bednoc == 0 ? 'active' : '';
+        document.getElementById('m_bed_night').className = states.bednoc == 1 ? 'active' : '';
+        updateItem('svbed', states.svbed); 
+    }
+
+    // Цветная лампа
+    if(t === 'dom/svSpalnyNoch/st') updateItem('svbed_rgb', v);
+    if(t === 'dom/svSpalnyNoch/br') document.getElementById('r_bed_br').value = v;
+    if(t === 'dom/svSpalnyNoch/rgb') {
+        const colorVal = v.toLowerCase();
+        const rgba = colorMap[colorVal] || 'rgba(88, 166, 255, 0.6)';
+        document.documentElement.style.setProperty('--bed-rgb', rgba);
+        document.getElementById('cp_bed_rgb').value = colorVal;
+        updateItem('svbed_rgb', states.svbed_rgb);
     }
 };
 
@@ -75,17 +106,57 @@ function updateCurtainVisual(val) {
     document.getElementById('curt-r').style.transform = `translateX(${offset}%)`;
 }
 
+function updateWindowStatus(cardId, iconId, textId, wrapId, val) {
+    const wrap = wrapId ? document.getElementById(wrapId) : null;
+    const icon = document.getElementById(iconId);
+    const statusTxt = document.getElementById(textId);
+    if(val == "1") {
+        if(wrap) wrap.classList.add('is-open');
+        icon.classList.add('alarm');
+        if(statusTxt) { statusTxt.innerText = "ОКНО ОТКРЫТО"; statusTxt.style.color = "var(--off)"; }
+    } else {
+        if(wrap) wrap.classList.remove('is-open');
+        icon.classList.remove('alarm');
+        if(statusTxt) { statusTxt.innerText = "ОКНО ЗАКРЫТО"; statusTxt.style.color = "var(--text)"; }
+    }
+}
+
 function updateItem(key, val) {
     states[key] = parseInt(val);
-    const btn = document.getElementById('sw_' + key);
+    const btnFix = (key === 'svbed_rgb') ? document.getElementById('sw_svbed_rgb') : document.getElementById('sw_' + key);
     const badge = document.getElementById('st_' + key + '_dash');
-    if(btn) btn.className = states[key] ? 'toggle-btn is-on' : 'toggle-btn';
+    
+    if(btnFix) btnFix.className = states[key] ? 'toggle-btn is-on' : 'toggle-btn';
     if(badge) badge.className = states[key] ? 'badge active' : 'badge';
     
-    if(key.includes('sv')) {
-        const hallCard = document.getElementById('card-hall');
+    const hallCard = document.getElementById('card-hall');
+    if(key === 'sv1' || key === 'sv2') {
         if(states.sv1) hallCard.classList.add('glow-main'); else hallCard.classList.remove('glow-main');
         if(states.sv2) hallCard.classList.add('glow-extra'); else hallCard.classList.remove('glow-extra');
+    }
+
+    const bedCard = document.getElementById('card-bedroom');
+    if(key === 'svbed' || key === 'bednoc') {
+        if(states.svbed) {
+            const shadow = states.bednoc === 1 ? 
+                'inset 0 -60px 100px -20px rgba(255, 180, 50, 0.4), inset 40px 0 70px -30px rgba(255, 180, 50, 0.2), inset -40px 0 70px -30px rgba(255, 180, 50, 0.2)' : 
+                'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
+            document.documentElement.style.setProperty('--bed-glow-bottom', shadow);
+            bedCard.style.borderBottom = states.bednoc === 1 ? '1px solid rgba(255, 180, 50, 0.4)' : '1px solid rgba(88, 166, 255, 0.4)';
+        } else {
+            document.documentElement.style.setProperty('--bed-glow-bottom', 'inset 0 0 0 transparent');
+            bedCard.style.borderBottom = '1px solid transparent';
+        }
+    }
+    if(key === 'svbed_rgb') {
+        if(states.svbed_rgb) {
+            const rgbColor = getComputedStyle(document.documentElement).getPropertyValue('--bed-rgb');
+            document.documentElement.style.setProperty('--bed-glow-top', `inset 0 70px 110px -30px ${rgbColor}`);
+            bedCard.style.borderTop = `1px solid ${rgbColor}`;
+        } else {
+            document.documentElement.style.setProperty('--bed-glow-top', 'inset 0 0 0 transparent');
+            bedCard.style.borderTop = '1px solid transparent';
+        }
     }
 }
 
