@@ -1,4 +1,3 @@
-<script>
     const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_' + Math.random().toString(16).substr(2,4) };
     const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
     let states = { r2:0, r3:0, sv1:0, sv2:0, svbed:0, svbed_rgb:0, mode:'off', bednoc: 0 };
@@ -136,4 +135,3 @@
     function closeOverlay() { document.getElementById('app-content').classList.remove('blurred'); document.querySelectorAll('.overlay').forEach(ov => { ov.classList.remove('active'); setTimeout(() => ov.style.display = 'none', 500); }); }
     function updateClock() { const now = new Date(); document.getElementById('clock-time').innerText = now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}); document.getElementById('clock-date').innerText = now.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'}); }
     setInterval(updateClock, 1000); updateClock();
-</script>
