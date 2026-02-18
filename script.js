@@ -90,7 +90,7 @@ mqtt.onMessageArrived = (m) => {
         const p = parseInt(v); 
         document.getElementById('l_shtora').innerText = p; 
         document.getElementById('curt-label-dash').innerText = 'Шторы: ' + p + '%'; 
-        document.getElementById('hall-tile-title').innerHTML = `Зал ${p}% <i class="fa-solid fa-couch" style="margin-left:5px; font-size:12px;"></i>`;
+        document.getElementById('hall-tile-title').innerHTML = `Зал <i class="fa-solid fa-couch" style="margin-left:5px; font-size:12px;"></i>`;
         document.getElementById('r_shtora').value = p; 
         updateCurtainVisual(p); 
     }
