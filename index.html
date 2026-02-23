@@ -10,8 +10,8 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    
 </head>
 <body>
 
@@ -210,9 +210,16 @@
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <select id="cp_bed_rgb" class="color-selector" onchange="send('dom/svSpalnyNoch/rgb', this.value)">
-                            <option value="red">Красный</option><option value="green">Зеленый</option><option value="blue">Синий</option>
-                            <option value="yellow">Желтый</option><option value="cyan">Голубой</option><option value="magenta">Пурпурный</option>
-                            <option value="orange">Оранжевый</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="white">Белый</option>
+                            <option value="red">Красный</option>
+                            <option value="green">Зеленый</option>
+                            <option value="blue">Синий</option>
+                            <option value="yellow">Желтый</option>
+                            <option value="cyan">Голубой</option>
+                            <option value="magenta">Пурпурный</option>
+                            <option value="orange">Оранжевый</option>
+                            <option value="purple">Фиолетовый</option>
+                            <option value="pink">Розовый</option>
+                            <option value="white">Белый</option>
                         </select>
                         <button id="sw_svbed_rgb" class="toggle-btn" onclick="send('dom/svSpalnyNoch/st', states.svbed_rgb?0:1)"></button>
                     </div>
@@ -254,9 +261,16 @@
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <select id="cp_det_rgb" class="color-selector" onchange="send('dom/svDetNoch/rgb', this.value)">
-                            <option value="red">Красный</option><option value="green">Зеленый</option><option value="blue">Синий</option>
-                            <option value="yellow">Желтый</option><option value="cyan">Голубой</option><option value="magenta">Пурпурный</option>
-                            <option value="orange">Оранжевый</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="white">Белый</option>
+                            <option value="red">Красный</option>
+                            <option value="green">Зеленый</option>
+                            <option value="blue">Синий</option>
+                            <option value="yellow">Желтый</option>
+                            <option value="cyan">Голубой</option>
+                            <option value="magenta">Пурпурный</option>
+                            <option value="orange">Оранжевый</option>
+                            <option value="purple">Фиолетовый</option>
+                            <option value="pink">Розовый</option>
+                            <option value="white">Белый</option>
                         </select>
                         <button id="sw_svdet_rgb" class="toggle-btn" onclick="send('dom/svDetNoch/st', states.svdet_rgb?0:1)"></button>
                     </div>
@@ -285,29 +299,38 @@
             <div class="column" style="gap: 15px;">
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
+                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ОСНОВНОЙ СВЕТ</span>
                         <button id="sw_kit_light" class="toggle-btn" onclick="send('dom/svKuh1', states.kit_light?0:1)"></button>
                     </div>
+                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ПОДСВЕТКА РАБОЧЕЙ ЗОНЫ</span>
                         <button id="sw_kit_sub" class="toggle-btn" onclick="send('dom/svKuh2', states.kit_sub?0:1)"></button>
                     </div>
+                    
                     <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
                         <span class="label-inline">НОЧНИК</span>
                         <button id="sw_kit_night" class="toggle-btn" onclick="send('dom/svKuh3', states.kit_night?0:1)"></button>
                     </div>
                 </div>
+                
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ВЕНТИЛЯЦИЯ</h3>
+                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ВЫТЯЖКА</span>
                         <button id="sw_kit_fan" class="toggle-btn" onclick="send('dom/Vityjka', states.kit_fan?0:1)"></button>
                     </div>
-                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">СКОРОСТЬ</div>
+                    
+                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">
+                        СКОРОСТЬ
+                    </div>
+                    
                     <div style="display: flex; gap: 8px; justify-content: center;">
-                        <button id="fan_speed_1" class="speed-btn" onclick="setFanSpeed(1)">1 СКОР</button>
-                        <button id="fan_speed_2" class="speed-btn" onclick="setFanSpeed(2)">2 СКОР</button>
+                        <button id="fan_speed_1" style="flex: 1; padding: 8px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="setFanSpeed(1)">1 СКОР</button>
+                        <button id="fan_speed_2" style="flex: 1; padding: 8px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="setFanSpeed(2)">2 СКОР</button>
                     </div>
                 </div>
             </div>
@@ -319,35 +342,42 @@
         <div class="unified-card">
             <div class="column" style="justify-content: center;">
                 <h3 class="col-title">ВОДОНАГРЕВАТЕЛЬ</h3>
-                <div style="font-size:12px; color:#c9d1d9; margin-bottom: 10px;">Температура: <b id="t_vod_ov">--</b>°</div>
-                <div style="font-size:12px; color:#c9d1d9; margin-bottom: 15px;">Цель: <b id="t_vod_zad_ov">--</b>°</div>
-                <div class="btn-group-vertical">
-                    <button id="mode_turbo" onclick="setWaterMode(1)">TURBO</button>
-                    <button id="mode_normal" onclick="setWaterMode(2)">NORMAL</button>
-                    <button id="mode_eco" onclick="setWaterMode(3)">ECO</button>
-                    <button id="mode_min" onclick="setWaterMode(4)">MIN</button>
+                <div style="font-size:12px; color:#c9d1d9; margin-bottom: 10px;">
+                    Температура: <b id="t_vod_ov">--</b>°
+                </div>
+                <div style="font-size:12px; color:#c9d1d9; margin-bottom: 15px;">
+                    Цель: <b id="t_vod_zad_ov">--</b>°
+                </div>
+                <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 8px; font-weight: bold; letter-spacing: 1px;">
+                    РЕЖИМ РАБОТЫ
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <button id="mode_turbo" style="padding: 6px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold;" onclick="setWaterMode(1)">TURBO</button>
+                    <button id="mode_normal" style="padding: 6px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold;" onclick="setWaterMode(2)">NORMAL</button>
+                    <button id="mode_eco" style="padding: 6px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold;" onclick="setWaterMode(3)">ECO</button>
+                    <button id="mode_min" style="padding: 6px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 10px; font-weight: bold;" onclick="setWaterMode(4)">MIN</button>
                 </div>
             </div>
             <div class="column-divider"></div>
             <div class="column" style="gap: 15px;">
-                <div class="relay-group">
-                    <h3 class="col-title">ОСВЕЩЕНИЕ</h3>
-                    <div class="switch-row-box-minimal">
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
+                    <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
+                    <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ОСНОВНОЙ СВЕТ</span>
                         <button id="sw_bath_light" class="toggle-btn" onclick="send('dom/svVan', states.bath_light?0:1)"></button>
                     </div>
-                    <div class="switch-row-box-minimal">
+                    <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ЗЕРКАЛО</span>
                         <button id="sw_bath_mirror" class="toggle-btn" onclick="send('dom/svVanZerkalo', states.bath_mirror?0:1)"></button>
                     </div>
-                    <div class="switch-row-box-minimal">
+                    <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
                         <span class="label-inline">ДУШЕВАЯ</span>
                         <button id="sw_bath_dush" class="toggle-btn" onclick="send('dom/svVanDush', states.bath_dush?0:1)"></button>
                     </div>
                 </div>
-                <div class="relay-group">
-                    <h3 class="col-title">ВЕНТИЛЯЦИЯ</h3>
-                    <div class="switch-row-box-minimal">
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
+                    <h3 class="col-title" style="margin-top:0">ВЕНТИЛЯЦИЯ</h3>
+                    <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
                         <span class="label-inline">ВЕНТИЛЯТОР</span>
                         <button id="sw_bath_vent" class="toggle-btn" onclick="send('dom/svVanVent', states.bath_vent?0:1)"></button>
                     </div>
@@ -358,5 +388,14 @@
     </div>
 
     <script src="script.js"></script>
+
+    <!-- Service Worker для PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
+            });
+        }
+    </script>
 </body>
 </html>
