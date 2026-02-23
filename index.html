@@ -28,6 +28,7 @@
         <div class="clock-container">
             <div id="clock-time">00:00</div>
             <div id="clock-date">...</div>
+            <div id="demo-badge">ДЕМО-РЕЖИМ</div>
         </div>
 
         <div class="cards-grid">
@@ -55,7 +56,7 @@
                     <div id="curt-l" class="curtain-wing curtain-left"></div>
                     <div id="curt-r" class="curtain-wing curtain-right"></div>
                 </div>
-                <h3 id="hall-tile-title">Зал <i class="fa-solid fa-couch" style="margin-left:5px; font-size:12px;"></i></h3>
+                <h3 id="hall-tile-title">Зал</h3>
                 <div class="temp-row">
                     <div class="val-display"><span id="t_hall">--</span><span class="deg">°</span></div>
                     <div class="target-box">
@@ -67,7 +68,7 @@
             </div>
 
             <div class="card" id="card-bedroom" onclick="openOverlay('bedroom-overlay')">
-                <h3>Спальня <i class="fa-solid fa-bed" style="margin-left:5px; font-size:12px;"></i></h3>
+                <h3>Спальня</h3>
                 <div class="temp-row" style="margin-top: 25px;">
                     <div class="val-display"><span id="t_bed">--</span><span class="deg">°</span></div>
                     <div class="target-box">
@@ -78,12 +79,34 @@
             </div>
 
             <div class="card" id="card-children" onclick="openOverlay('children-overlay')">
-                <h3>Детская <i class="fa-solid fa-child" style="margin-left:5px; font-size:12px;"></i></h3>
+                <h3>Детская</h3>
                 <div class="temp-row" style="margin-top: 25px;">
                     <div class="val-display"><span id="t_det">--</span><span class="deg">°</span></div>
                     <div class="target-box">
                         <div class="target-label">Влажность</div>
                         <div class="target-val"><span id="h_det">--</span>%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="card-kitchen" onclick="openOverlay('kitchen-overlay')">
+                <h3>Кухня</h3>
+                <div class="temp-row" style="margin-top: 25px;">
+                    <div class="val-display"><span id="t_kit">--</span><span class="deg">°</span></div>
+                    <div class="target-box">
+                        <div class="target-label">Влажность</div>
+                        <div class="target-val"><span id="h_kit">--</span>%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="card-bathroom" onclick="openOverlay('bathroom-overlay')">
+                <h3>Ванная</h3>
+                <div class="temp-row" style="margin-top: 25px;">
+                    <div class="val-display"><span id="t_vod">--</span><span class="deg">°</span></div>
+                    <div class="target-box">
+                        <div class="target-label">Цель</div>
+                        <div class="target-val"><span id="t_vod_zad">--</span><span class="deg">°</span></div>
                     </div>
                 </div>
             </div>
@@ -187,16 +210,9 @@
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <select id="cp_bed_rgb" class="color-selector" onchange="send('dom/svSpalnyNoch/rgb', this.value)">
-                            <option value="red">Красный</option>
-                            <option value="green">Зеленый</option>
-                            <option value="blue">Синий</option>
-                            <option value="yellow">Желтый</option>
-                            <option value="cyan">Голубой</option>
-                            <option value="magenta">Пурпурный</option>
-                            <option value="orange">Оранжевый</option>
-                            <option value="purple">Фиолетовый</option>
-                            <option value="pink">Розовый</option>
-                            <option value="white">Белый</option>
+                            <option value="red">Красный</option><option value="green">Зеленый</option><option value="blue">Синий</option>
+                            <option value="yellow">Желтый</option><option value="cyan">Голубой</option><option value="magenta">Пурпурный</option>
+                            <option value="orange">Оранжевый</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="white">Белый</option>
                         </select>
                         <button id="sw_svbed_rgb" class="toggle-btn" onclick="send('dom/svSpalnyNoch/st', states.svbed_rgb?0:1)"></button>
                     </div>
@@ -238,20 +254,103 @@
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <select id="cp_det_rgb" class="color-selector" onchange="send('dom/svDetNoch/rgb', this.value)">
-                            <option value="red">Красный</option>
-                            <option value="green">Зеленый</option>
-                            <option value="blue">Синий</option>
-                            <option value="yellow">Желтый</option>
-                            <option value="cyan">Голубой</option>
-                            <option value="magenta">Пурпурный</option>
-                            <option value="orange">Оранжевый</option>
-                            <option value="purple">Фиолетовый</option>
-                            <option value="pink">Розовый</option>
-                            <option value="white">Белый</option>
+                            <option value="red">Красный</option><option value="green">Зеленый</option><option value="blue">Синий</option>
+                            <option value="yellow">Желтый</option><option value="cyan">Голубой</option><option value="magenta">Пурпурный</option>
+                            <option value="orange">Оранжевый</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="white">Белый</option>
                         </select>
                         <button id="sw_svdet_rgb" class="toggle-btn" onclick="send('dom/svDetNoch/st', states.svdet_rgb?0:1)"></button>
                     </div>
                     <input type="range" min="0" max="100" id="r_det_br" onchange="send('dom/svDetNoch/br', this.value)">
+                </div>
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+    </div>
+
+    <div id="kitchen-overlay" class="overlay">
+        <div class="unified-card">
+            <div class="column" style="justify-content: center;">
+                <h3 class="col-title">СОСТОЯНИЕ</h3>
+                <div class="temp-row" style="margin: 0; justify-content: flex-start;">
+                    <div class="val-display"><span id="t_kit_ov">--</span><span class="deg">°</span></div>
+                    <div class="target-box">
+                        <div class="target-label">Влажность</div>
+                        <div class="target-val"><span id="h_kit_ov">--</span>%</div>
+                    </div>
+                </div>
+                <div id="window-status-text-kit" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
+                <div id="door-status-text-kit" class="status-row-box" style="margin-top: 8px;">ДВЕРИ ЗАКРЫТЫ</div>
+            </div>
+            <div class="column-divider"></div>
+            <div class="column" style="gap: 15px;">
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
+                    <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
+                    <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
+                        <span class="label-inline">ОСНОВНОЙ СВЕТ</span>
+                        <button id="sw_kit_light" class="toggle-btn" onclick="send('dom/svKuh1', states.kit_light?0:1)"></button>
+                    </div>
+                    <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
+                        <span class="label-inline">ПОДСВЕТКА РАБОЧЕЙ ЗОНЫ</span>
+                        <button id="sw_kit_sub" class="toggle-btn" onclick="send('dom/svKuh2', states.kit_sub?0:1)"></button>
+                    </div>
+                    <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
+                        <span class="label-inline">НОЧНИК</span>
+                        <button id="sw_kit_night" class="toggle-btn" onclick="send('dom/svKuh3', states.kit_night?0:1)"></button>
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
+                    <h3 class="col-title" style="margin-top:0">ВЕНТИЛЯЦИЯ</h3>
+                    <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
+                        <span class="label-inline">ВЫТЯЖКА</span>
+                        <button id="sw_kit_fan" class="toggle-btn" onclick="send('dom/Vityjka', states.kit_fan?0:1)"></button>
+                    </div>
+                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">СКОРОСТЬ</div>
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <button id="fan_speed_1" class="speed-btn" onclick="setFanSpeed(1)">1 СКОР</button>
+                        <button id="fan_speed_2" class="speed-btn" onclick="setFanSpeed(2)">2 СКОР</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+    </div>
+
+    <div id="bathroom-overlay" class="overlay">
+        <div class="unified-card">
+            <div class="column" style="justify-content: center;">
+                <h3 class="col-title">ВОДОНАГРЕВАТЕЛЬ</h3>
+                <div style="font-size:12px; color:#c9d1d9; margin-bottom: 10px;">Температура: <b id="t_vod_ov">--</b>°</div>
+                <div style="font-size:12px; color:#c9d1d9; margin-bottom: 15px;">Цель: <b id="t_vod_zad_ov">--</b>°</div>
+                <div class="btn-group-vertical">
+                    <button id="mode_turbo" onclick="setWaterMode(1)">TURBO</button>
+                    <button id="mode_normal" onclick="setWaterMode(2)">NORMAL</button>
+                    <button id="mode_eco" onclick="setWaterMode(3)">ECO</button>
+                    <button id="mode_min" onclick="setWaterMode(4)">MIN</button>
+                </div>
+            </div>
+            <div class="column-divider"></div>
+            <div class="column" style="gap: 15px;">
+                <div class="relay-group">
+                    <h3 class="col-title">ОСВЕЩЕНИЕ</h3>
+                    <div class="switch-row-box-minimal">
+                        <span class="label-inline">ОСНОВНОЙ СВЕТ</span>
+                        <button id="sw_bath_light" class="toggle-btn" onclick="send('dom/svVan', states.bath_light?0:1)"></button>
+                    </div>
+                    <div class="switch-row-box-minimal">
+                        <span class="label-inline">ЗЕРКАЛО</span>
+                        <button id="sw_bath_mirror" class="toggle-btn" onclick="send('dom/svVanZerkalo', states.bath_mirror?0:1)"></button>
+                    </div>
+                    <div class="switch-row-box-minimal">
+                        <span class="label-inline">ДУШЕВАЯ</span>
+                        <button id="sw_bath_dush" class="toggle-btn" onclick="send('dom/svVanDush', states.bath_dush?0:1)"></button>
+                    </div>
+                </div>
+                <div class="relay-group">
+                    <h3 class="col-title">ВЕНТИЛЯЦИЯ</h3>
+                    <div class="switch-row-box-minimal">
+                        <span class="label-inline">ВЕНТИЛЯТОР</span>
+                        <button id="sw_bath_vent" class="toggle-btn" onclick="send('dom/svVanVent', states.bath_vent?0:1)"></button>
+                    </div>
                 </div>
             </div>
         </div>
