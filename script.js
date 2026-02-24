@@ -1,4 +1,4 @@
-        const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_' + Math.random().toString(16).substr(2,4) };
+const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_' + Math.random().toString(16).substr(2,4) };
         const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
         
         // states расширен для Детской, Кухни и Ванной
