@@ -189,6 +189,23 @@
             .unified-card { flex-direction: column; padding: 20px; max-height: 90vh; overflow-y: auto; }
             .column-divider { display: none; }
             .card { max-width: 100%; }
+            
+            /* Адаптивность главной страницы */
+            #main-screen {
+                flex-direction: column !important;
+                gap: 20px !important;
+            }
+            
+            #cards-container {
+                flex-direction: column !important;
+                gap: 20px !important;
+            }
+            
+            #card-home, #card-street {
+                max-width: 100% !important;
+                min-width: 100% !important;
+                flex: 1 !important;
+            }
         }
     </style>
 </head>
@@ -215,9 +232,9 @@
             <!-- Часы и дата будут в clock-container выше -->
             
             <!-- 2 большие карточки: ДОМ и УЛИЦА -->
-            <div style="display: flex; gap: 30px; width: 100%; max-width: 800px;">
+            <div id="cards-container" style="display: flex; gap: 30px; width: 100%; max-width: 800px; flex-wrap: wrap;">
                 <!-- КАРТОЧКА ДОМ -->
-                <div id="card-home" class="card" style="flex: 1; max-width: none; cursor: pointer;" onclick="showRoomsScreen()">
+                <div id="card-home" class="card" style="flex: 1; max-width: none; min-width: 250px; cursor: pointer;" onclick="showRoomsScreen()">
                     <h3>Дом</h3>
                     <div class="temp-row" style="margin-top: 25px;">
                         <div class="val-display"><span id="t_home">--</span><span class="deg">°</span></div>
@@ -229,7 +246,7 @@
                 </div>
                 
                 <!-- КАРТОЧКА УЛИЦА -->
-                <div id="card-street" class="card" style="flex: 1; max-width: none;">
+                <div id="card-street" class="card" style="flex: 1; max-width: none; min-width: 250px;">
                     <h3>Улица</h3>
                     <div class="temp-row" style="margin-top: 15px;">
                         <div class="val-display"><span id="t_street">--</span><span class="deg">°</span></div>
@@ -1292,19 +1309,31 @@
             const zadContainer = document.getElementById('bath-zad-container');
             
             if (states.water_stat) {
-                // Включено
+                // ВКЛЮЧЕНО - чёткие, без размытия
                 if(btn) btn.innerText = 'ВКЛЮЧЕНО';
                 if(btn) btn.style.background = '#238636';
                 if(btn) btn.style.borderColor = '#238636';
-                if(tempContainer) tempContainer.style.opacity = '1';
-                if(zadContainer) zadContainer.style.opacity = '1';
+                if(tempContainer) {
+                    tempContainer.style.opacity = '1';
+                    tempContainer.style.filter = 'blur(0px)';
+                }
+                if(zadContainer) {
+                    zadContainer.style.opacity = '1';
+                    zadContainer.style.filter = 'blur(0px)';
+                }
             } else {
-                // Выключено
+                // ВЫКЛЮЧЕНО - полупрозрачно и размыто
                 if(btn) btn.innerText = 'ВЫКЛЮЧЕНО';
                 if(btn) btn.style.background = '#30363d';
                 if(btn) btn.style.borderColor = 'var(--border)';
-                if(tempContainer) tempContainer.style.opacity = '0.5';
-                if(zadContainer) zadContainer.style.opacity = '0.5';
+                if(tempContainer) {
+                    tempContainer.style.opacity = '0.3';
+                    tempContainer.style.filter = 'blur(2px)';
+                }
+                if(zadContainer) {
+                    zadContainer.style.opacity = '0.3';
+                    zadContainer.style.filter = 'blur(2px)';
+                }
             }
         }
         
