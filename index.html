@@ -8,216 +8,14 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0d1117">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
-
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
-    <style>
-        :root { 
-            --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --text: #c9d1d9; 
-            --on: #238636; --off: #da3633; --border: #30363d;
-            --ice-blue: #a5d6ff;
-            --bed-rgb: rgba(88, 166, 255, 0.5);
-            --bed-glow-bottom: inset 0 0 0 transparent;
-            --bed-glow-top: inset 0 0 0 transparent;
-            /* Переменные для Детской */
-            --det-rgb: rgba(88, 166, 255, 0.5);
-            --det-glow-bottom: inset 0 0 0 transparent;
-            --det-glow-top: inset 0 0 0 transparent;
-            /* Переменные для Кухни */
-            --kit-glow-bottom: inset 0 0 0 transparent;
-            --kit-glow-top: inset 0 0 0 transparent;
-            /* Переменные для Ванной */
-            --bath-glow-bottom: inset 0 0 0 transparent;
-            --bath-glow-top: inset 0 0 0 transparent;
-            /* Переменные для Улицы */
-            --street-glow-bottom: inset 0 0 0 transparent;
-            --street-glow-top: inset 0 0 0 transparent;
-            /* Переменные для Улицы */
-            --street-glow-bottom: inset 0 0 0 transparent;
-            --street-glow-top: inset 0 0 0 transparent;
-            /* Переменные для карточки ДОМ */
-            --home-glow-bottom: inset 0 0 0 transparent;
-        }
-
-        * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; overflow-x: hidden; }
-
-        @keyframes pulse-glow { 
-            from { box-shadow: 0 0 5px rgba(88,166,255,0.2); opacity: 0.8; } 
-            to { box-shadow: 0 0 15px rgba(88,166,255,0.6); opacity: 1; } 
-        }
-
-        @keyframes temp-alert-pulse {
-            0% { text-shadow: 0 0 8px rgba(165, 214, 255, 0.4); color: #fff; }
-            100% { text-shadow: 0 0 25px rgba(165, 214, 255, 1), 0 0 10px rgba(165, 214, 255, 0.8); color: var(--ice-blue); }
-        }
-        .temp-pulse { animation: temp-alert-pulse 1.5s infinite alternate ease-in-out; color: var(--ice-blue) !important; }
-
-        .cards-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; width: 100%; max-width: 1200px; padding: 10px; }
-
-        .card { 
-            background: var(--card); 
-            border-radius: 18px; 
-            padding: 22px; 
-            flex: 1 1 300px; 
-            max-width: 400px; 
-            min-height: 220px;
-            border: 1px solid var(--border); 
-            position: relative; 
-            cursor: pointer; 
-            display: flex;
-            flex-direction: column;
-            transition: all 0.5s ease;
-            overflow: hidden;
-        }
-
-        .card h3 { margin: 0 0 15px 0; font-size: 18px; font-weight: 600; color: #58a6ff; text-transform: capitalize; letter-spacing: 0.5px; position: relative; z-index: 2; }
-
-        .glow-main { 
-            box-shadow: inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), 
-                        inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), 
-                        inset -40px 0 70px -30px rgba(88, 166, 255, 0.3); 
-            border-bottom: 1px solid rgba(88, 166, 255, 0.4) !important; 
-        }
-        .glow-extra { 
-            box-shadow: inset 0 70px 110px -30px rgba(88, 166, 255, 0.6); 
-            border-top: 1px solid rgba(88, 166, 255, 0.7) !important; 
-        }
-        #card-hall.glow-main.glow-extra { 
-            box-shadow: inset 0 -60px 100px -20px rgba(88, 166, 255, 0.4), 
-                        inset 0 70px 110px -30px rgba(88, 166, 255, 0.5) !important; 
-        }
-        #card-bedroom { box-shadow: var(--bed-glow-top), var(--bed-glow-bottom); transition: all 0.6s ease; }
-        #card-children { box-shadow: var(--det-glow-top), var(--det-glow-bottom); transition: all 0.6s ease; }
-        #card-kitchen { box-shadow: var(--kit-glow-top), var(--kit-glow-bottom); transition: all 0.6s ease; }
-        #card-bathroom { box-shadow: var(--bath-glow-top), var(--bath-glow-bottom); transition: all 0.6s ease; }
-        #card-street { box-shadow: var(--street-glow-top), var(--street-glow-bottom); transition: all 0.6s ease; }
-        #card-home { box-shadow: var(--home-glow-bottom); transition: all 0.6s ease; }
-
-        .curtain-wrap { position: absolute; bottom: 0; left: 0; width: 100%; height: 52%; pointer-events: none; z-index: 1; display: flex; border-radius: 0 0 18px 18px; overflow: hidden; }
-        .curtain-wing { width: 50%; height: 100%; background: rgba(10, 10, 15, 0.3); backdrop-filter: blur(5px); transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); border-top: 1px solid rgba(255, 255, 255, 0.15); z-index: 1; }
-        .curtain-left { border-right: 1px solid rgba(255, 255, 255, 0.15); }
-        .curtain-right { border-left: 1px solid rgba(255, 255, 255, 0.15); }
-        .curt-label-dash { position: absolute; bottom: 8px; left: 0; width: 100%; text-align: center; z-index: 2; font-size: 9px; color: rgba(255,255,255,0.4); }
-
-        #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; justify-content: center; align-items: center; z-index: 10000; }
-        .auth-container { display: flex; flex-direction: column; align-items: center; width: 280px; }
-        .blue-house { color: var(--accent); font-size: 70px; margin-bottom: 25px; }
-        .fazenda-badge { width: 100%; padding: 15px 0; background: rgba(88,166,255,0.1); color: var(--accent); border: 1px solid var(--accent); border-radius: 12px; font-size: 24px; font-weight: bold; letter-spacing: 4px; margin-bottom: 20px; text-align: center; animation: pulse-glow 2s infinite alternate; }
-        .auth-container input { width: 100%; padding: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: #fff; font-size: 16px; text-align: center; margin-bottom: 12px; }
-        .enter-btn { width: 100%; padding: 14px; background: var(--accent); border: none; color: #fff; border-radius: 12px; font-weight: bold; cursor: pointer; }
-
-        #app-content { display: none; flex-direction: column; align-items: center; padding: 15px; transition: filter 0.5s ease; }
-        #app-content.blurred { filter: blur(5px); }
-
-        .clock-container { text-align: center; padding: 20px 0 30px; }
-        #clock-time { font-size: 60px; font-weight: 200; color: #fff; line-height: 1; }
-        #clock-date { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; }
-        
-        #demo-badge {
-            display: none;
-            margin-top: 15px;
-            padding: 6px 12px;
-            background: rgba(218, 54, 51, 0.2);
-            border: 1px solid #da3633;
-            border-radius: 6px;
-            color: #ff6b6b;
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            animation: demo-pulse 1.5s infinite;
-        }
-        
-        @keyframes demo-pulse {
-            0% { 
-                box-shadow: 0 0 5px rgba(218, 54, 51, 0.3);
-                color: #ff6b6b;
-            }
-            50% {
-                box-shadow: 0 0 15px rgba(218, 54, 51, 0.8);
-                color: #ff8888;
-            }
-            100% { 
-                box-shadow: 0 0 5px rgba(218, 54, 51, 0.3);
-                color: #ff6b6b;
-            }
-        }
-
-        .temp-row { display: flex; justify-content: center; align-items: flex-start; margin: 10px 0 25px 0; position: relative; z-index: 2; }
-        .val-display { font-size: 58px; font-weight: 200; color: #fff; line-height: 1; }
-        .deg { font-size: 0.7em; color: inherit; vertical-align: top; margin-left: 2px; }
-
-        .target-box { margin-left: 15px; text-align: left; border-left: 1px solid var(--border); padding-left: 12px; padding-top: 5px; }
-        .target-label { font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; }
-        .target-val { font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1; }
-
-        .grid-status { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .badge { padding: 12px; border-radius: 12px; background: #0d1117; font-size: 9px; text-align: center; border: 1px solid var(--border); color: #444; font-weight: bold; }
-        .badge.active { color: #fff; border-color: var(--accent); background: rgba(88,166,255,0.05); }
-        .pwr-badge { margin-top: 15px; padding: 12px; border-radius: 12px; background: rgba(88,166,255,0.05); border: 1px solid var(--border); text-align: center; font-size: 11px; color: #8b949e; }
-
-        .mode-badge { position: absolute; top: 22px; right: 22px; font-size: 9px; font-weight: bold; padding: 3px 10px; border-radius: 50px; display: none; }
-        .mode-badge.active { display: block; border: 1px solid currentColor; }
-
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(13, 17, 23, 0.4); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 5000; padding: 15px; opacity: 0; transition: opacity 0.5s ease; }
-        .overlay.active { display: flex; opacity: 1; }
-        .unified-card { background: var(--card); border-radius: 24px; border: 1px solid var(--border); width: 100%; max-width: 650px; padding: 30px; display: flex; gap: 30px; filter: blur(15px); opacity: 0; transition: 0.5s; }
-        .overlay.active .unified-card { filter: blur(0px); opacity: 1; }
-        .column { flex: 1; display: flex; flex-direction: column; gap: 15px; }
-        .column-divider { width: 1px; background: var(--border); }
-        .col-title { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-
-        .label-inline { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; }
-        .switch-row-box { display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 15px 25px; background: rgba(0,0,0,0.2); border-radius: 15px; border: 1px solid var(--border); width: 100%; }
-        .status-row-box { display: flex; justify-content: center; align-items: center; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; border: 1px solid var(--border); width: 100%; font-weight: bold; font-size: 12px; letter-spacing: 1px; transition: 0.3s; }
-        .slider-row-box { padding: 15px 20px; background: rgba(0,0,0,0.2); border-radius: 15px; border: 1px solid var(--border); width: 100%; }
-
-        .btn-group { display: flex; gap: 5px; }
-        .btn-group button { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: #0d1117; color: var(--text); font-size: 10px; font-weight: bold; cursor: pointer; }
-        .btn-group button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-        .relay-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border); }
-        .toggle-btn { position: relative; width: 50px; height: 26px; background: #30363d; border-radius: 20px; border: none; cursor: pointer; transition: 0.3s; }
-        .toggle-btn::before { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: 0.3s; }
-        .toggle-btn.is-on { background: var(--on); }
-        .toggle-btn.is-on::before { left: 27px; }
-
-        input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; height: 6px; }
-        .color-selector { flex: 1; background: #0d1117; border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
-        .pid-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-        .pid-grid input { width: 100%; background: #0d1117; border: 1px solid var(--border); color: var(--accent); padding: 8px; border-radius: 8px; text-align: center; font-size: 12px; }
-
-        .close-btn { margin-top: 30px; padding: 18px 80px; background: var(--accent); border: none; color: #fff; border-radius: 15px; font-weight: bold; cursor: pointer; }
-        .locked-ui { opacity: 0.25; pointer-events: none; filter: grayscale(1) blur(1px); }
-
-        @media (max-width: 650px) {
-            .unified-card { flex-direction: column; padding: 20px; max-height: 90vh; overflow-y: auto; }
-            .column-divider { display: none; }
-            .card { max-width: 100%; }
-            
-            /* Адаптивность главной страницы */
-            #main-screen {
-                flex-direction: column !important;
-                gap: 20px !important;
-            }
-            
-            #cards-container {
-                flex-direction: column !important;
-                gap: 20px !important;
-            }
-            
-            #card-home, #card-street {
-                max-width: 100% !important;
-                min-width: 100% !important;
-                flex: 1 !important;
-            }
-        }
-    </style>
+    <!-- Этап 1: Стили вынесены в отдельный файл -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- ==================== ЭКРАН АВТОРИЗАЦИИ ==================== -->
     <div id="auth-screen">
         <div class="auth-container">
             <i class="fa-solid fa-house-chimney blue-house"></i>
@@ -227,6 +25,7 @@
         </div>
     </div>
 
+    <!-- ==================== КОНТЕНТ ПРИЛОЖЕНИЯ ==================== -->
     <div id="app-content">
         <div class="clock-container">
             <div id="clock-time">00:00</div>
@@ -234,14 +33,15 @@
             <div id="demo-badge">ДЕМО-РЕЖИМ</div>
         </div>
 
-        <!-- ГЛАВНАЯ СТРАНИЦА (главная) -->
+        <!-- ========== ГЛАВНАЯ СТРАНИЦА ========== -->
         <div id="main-screen" class="cards-grid" style="flex-direction: column; gap: 30px; max-width: 800px;">
-            <!-- Часы и дата будут в clock-container выше -->
-            
-            <!-- 2 большие карточки: ДОМ и УЛИЦА -->
             <div id="cards-container" style="display: flex; gap: 30px; width: 100%; max-width: 800px; flex-wrap: wrap;">
+
                 <!-- КАРТОЧКА ДОМ -->
-                <div id="card-home" class="card" style="flex: 1; max-width: none; min-width: 250px; cursor: pointer;" onclick="showRoomsScreen()" ontouchstart="handleTouchStart(event)" ontouchend="handleTouchEnd(event)">
+                <div id="card-home" class="card" style="flex: 1; max-width: none; min-width: 250px;"
+                     onclick="showRoomsScreen()"
+                     ontouchstart="handleTouchStart(event)"
+                     ontouchend="handleTouchEnd(event)">
                     <h3>Дом</h3>
                     <div class="temp-row" style="margin-top: 25px;">
                         <div class="val-display"><span id="t_home">--</span><span class="deg">°</span></div>
@@ -251,9 +51,10 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- КАРТОЧКА УЛИЦА -->
-                <div id="card-street" class="card" style="flex: 1; max-width: none; min-width: 250px;" onclick="openOverlay('street-overlay')">
+                <div id="card-street" class="card" style="flex: 1; max-width: none; min-width: 250px;"
+                     onclick="openOverlay('street-overlay')">
                     <h3>Улица</h3>
                     <div class="temp-row" style="margin-top: 15px;">
                         <div class="val-display"><span id="t_street">--</span><span class="deg">°</span></div>
@@ -266,192 +67,184 @@
                         Давление: <span id="p_street">--</span> мм рт.ст.
                     </div>
                 </div>
+
             </div>
         </div>
 
-        <!-- ЭКРАН КОМНАТ (скрыт по умолчанию) -->
+        <!-- ========== ЭКРАН КОМНАТ ========== -->
         <div id="rooms-screen" style="display: none; width: 100%;">
-            <!-- Кнопка выхода в верхнем правом углу -->
             <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
-                <button id="exit-btn" style="width: 180px; height: 35px; border-radius: 8px; background: #30363d; border: 2px solid #58a6ff; color: #58a6ff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(88, 166, 255, 0.8), inset 0 0 10px rgba(88, 166, 255, 0.4); transition: 0.3s; font-weight: bold;" onclick="showMainScreen()" onmouseover="this.style.boxShadow='0 0 25px rgba(88, 166, 255, 1), inset 0 0 15px rgba(88, 166, 255, 0.6)'" onmouseout="this.style.boxShadow='0 0 15px rgba(88, 166, 255, 0.8), inset 0 0 10px rgba(88, 166, 255, 0.4)'">✕ НАЗАД</button>
+                <button class="back-btn" onclick="showMainScreen()">✕ НАЗАД</button>
             </div>
-            
             <div class="cards-grid">
-            <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
-                <div id="curtain-container" class="curtain-wrap">
-                    <div id="curt-l" class="curtain-wing curtain-left"></div>
-                    <div id="curt-r" class="curtain-wing curtain-right"></div>
-                </div>
-                <h3 id="hall-tile-title">Зал</h3>
-                <div class="temp-row">
-                    <div class="val-display"><span id="t_hall">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_hall">--</span>%</div>
-                    </div>
-                </div>
-                <div id="curt-label-dash" class="curt-label-dash">Шторы: --%</div>
-            </div>
 
-            <div class="card" id="card-bedroom" onclick="openOverlay('bedroom-overlay')">
-                <h3>Спальня</h3>
-                <div class="temp-row" style="margin-top: 25px;">
-                    <div class="val-display"><span id="t_bed">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_bed">--</span>%</div>
+                <!-- ЗАЛ -->
+                <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
+                    <div id="curtain-container" class="curtain-wrap">
+                        <div id="curt-l" class="curtain-wing curtain-left"></div>
+                        <div id="curt-r" class="curtain-wing curtain-right"></div>
                     </div>
+                    <h3 id="hall-tile-title">Зал</h3>
+                    <div class="temp-row">
+                        <div class="val-display"><span id="t_hall">--</span><span class="deg">°</span></div>
+                        <div class="target-box">
+                            <div class="target-label">Влажность</div>
+                            <div class="target-val"><span id="h_hall">--</span>%</div>
+                        </div>
+                    </div>
+                    <div id="curt-label-dash" class="curt-label-dash">Шторы: --%</div>
                 </div>
-            </div>
 
-            <div class="card" id="card-children" onclick="openOverlay('children-overlay')">
-                <h3>Детская</h3>
-                <div class="temp-row" style="margin-top: 25px;">
-                    <div class="val-display"><span id="t_det">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_det">--</span>%</div>
+                <!-- СПАЛЬНЯ -->
+                <div class="card" id="card-bedroom" onclick="openOverlay('bedroom-overlay')">
+                    <h3>Спальня</h3>
+                    <div class="temp-row" style="margin-top: 25px;">
+                        <div class="val-display"><span id="t_bed">--</span><span class="deg">°</span></div>
+                        <div class="target-box">
+                            <div class="target-label">Влажность</div>
+                            <div class="target-val"><span id="h_bed">--</span>%</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card" id="card-kitchen" onclick="openOverlay('kitchen-overlay')">
-                <h3>Кухня</h3>
-                <div class="temp-row" style="margin-top: 25px;">
-                    <div class="val-display"><span id="t_kit">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_kit">--</span>%</div>
+                <!-- ДЕТСКАЯ -->
+                <div class="card" id="card-children" onclick="openOverlay('children-overlay')">
+                    <h3>Детская</h3>
+                    <div class="temp-row" style="margin-top: 25px;">
+                        <div class="val-display"><span id="t_det">--</span><span class="deg">°</span></div>
+                        <div class="target-box">
+                            <div class="target-label">Влажность</div>
+                            <div class="target-val"><span id="h_det">--</span>%</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card" id="card-bathroom" onclick="openOverlay('bathroom-overlay')">
-                <h3>Ванная</h3>
-                <div class="temp-row" style="margin-top: 25px;">
-                    <div class="val-display"><span id="t_vod">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Цель</div>
-                        <div class="target-val"><span id="t_vod_zad">--</span><span class="deg">°</span></div>
+                <!-- КУХНЯ -->
+                <div class="card" id="card-kitchen" onclick="openOverlay('kitchen-overlay')">
+                    <h3>Кухня</h3>
+                    <div class="temp-row" style="margin-top: 25px;">
+                        <div class="val-display"><span id="t_kit">--</span><span class="deg">°</span></div>
+                        <div class="target-box">
+                            <div class="target-label">Влажность</div>
+                            <div class="target-val"><span id="h_kit">--</span>%</div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- ВАННАЯ -->
+                <div class="card" id="card-bathroom" onclick="openOverlay('bathroom-overlay')">
+                    <h3>Ванная</h3>
+                    <div class="temp-row" style="margin-top: 25px;">
+                        <div class="val-display"><span id="t_vod">--</span><span class="deg">°</span></div>
+                        <div class="target-box">
+                            <div class="target-label">Цель</div>
+                            <div class="target-val"><span id="t_vod_zad">--</span><span class="deg">°</span></div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
+        </div>
+
+        <!-- ========== ТЕХНИЧЕСКИЙ ЭКРАН ========== -->
+        <div id="tech-screen" style="display: none; width: 100%;">
+            <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+                <button class="back-btn" onclick="showMainScreen()">✕ НАЗАД</button>
+            </div>
+            <div class="cards-grid">
+
+                <!-- КОТЕЛ -->
+                <div class="card" onclick="openOverlay('boiler-overlay')">
+                    <h3>Котел</h3>
+                    <div id="badge_auto"   class="mode-badge" style="color: var(--accent);">AUTO</div>
+                    <div id="badge_manual" class="mode-badge" style="color: var(--on);">MANUAL</div>
+                    <div id="badge_off"    class="mode-badge" style="color: var(--off);">OFF</div>
+                    <div class="temp-row">
+                        <div class="val-display"><span id="t_water">--</span><span class="deg">°</span></div>
+                        <div class="target-box">
+                            <div class="target-label">Цель</div>
+                            <div class="target-val"><span id="l_sp_dash">--</span><span class="deg">°</span></div>
+                        </div>
+                    </div>
+                    <div class="grid-status">
+                        <div id="st_r2_dash" class="badge">ТЭН 2</div>
+                        <div id="st_r3_dash" class="badge">ТЭН 3</div>
+                    </div>
+                    <div class="pwr-badge">ТЭН 1: <span id="pwr_val">--%</span></div>
+                </div>
+
+                <!-- ЭНЕРГОПОТРЕБЛЕНИЕ -->
+                <div class="card" onclick="openOverlay('energy-overlay')">
+                    <h3>Энергопотребление</h3>
+                    <div style="text-align: center; margin-top: 30px;">
+                        <div style="font-size: 12px; color: #8b949e; margin-bottom: 5px;">МОЩНОСТЬ</div>
+                        <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1; margin-bottom: 20px;">
+                            <span id="power_watts">--</span><span style="font-size: 24px; margin-left: 5px;">W</span>
+                        </div>
+                        <div style="display: flex; gap: 20px; justify-content: center;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 10px; color: #8b949e; margin-bottom: 3px;">НАПРЯЖЕНИЕ</div>
+                                <div style="font-size: 24px; font-weight: 200; color: #a5d6ff;"><span id="voltage_volts">--</span><span style="font-size: 12px; margin-left: 2px;">V</span></div>
+                            </div>
+                            <div style="font-size: 18px; color: #30363d;">|</div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 10px; color: #8b949e; margin-bottom: 3px;">ТОК</div>
+                                <div style="font-size: 24px; font-weight: 200; color: #a5d6ff;"><span id="current_amps">--</span><span style="font-size: 12px; margin-left: 2px;">A</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ОХРАНА -->
+                <div class="card" onclick="openOverlay('security-overlay')">
+                    <h3>Охрана</h3>
+                    <div style="text-align: center; margin-top: 50px;">
+                        <div style="font-size: 14px; color: #8b949e;">Статус датчиков</div>
+                        <div style="font-size: 28px; margin-top: 15px;">🔒</div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
 
-    <!-- ТЕХНИЧЕСКИЙ ЭКРАН (скрыт по умолчанию) -->
-    <div id="tech-screen" style="display: none; width: 100%;">
-        <!-- Кнопка выхода в верхнем правом углу -->
-        <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
-            <button id="tech-exit-btn" style="width: 180px; height: 35px; border-radius: 8px; background: #30363d; border: 2px solid #58a6ff; color: #58a6ff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(88, 166, 255, 0.8), inset 0 0 10px rgba(88, 166, 255, 0.4); transition: 0.3s; font-weight: bold;" onclick="showMainScreen()" onmouseover="this.style.boxShadow='0 0 25px rgba(88, 166, 255, 1), inset 0 0 15px rgba(88, 166, 255, 0.6)'" onmouseout="this.style.boxShadow='0 0 15px rgba(88, 166, 255, 0.8), inset 0 0 10px rgba(88, 166, 255, 0.4)'">✕ НАЗАД</button>
-        </div>
-        
-        <div class="cards-grid">
-            <!-- КАРТОЧКА КОТЕЛ (перенесена из rooms-screen) -->
-            <div class="card" onclick="openOverlay('boiler-overlay')">
-                <h3>Котел</h3>
-                <div id="badge_auto" class="mode-badge" style="color: var(--accent);">AUTO</div>
-                <div id="badge_manual" class="mode-badge" style="color: var(--on);">MANUAL</div>
-                <div id="badge_off" class="mode-badge" style="color: var(--off);">OFF</div>
-                <div class="temp-row">
-                    <div class="val-display"><span id="t_water">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Цель</div>
-                        <div class="target-val"><span id="l_sp_dash">--</span><span class="deg">°</span></div>
-                    </div>
-                </div>
-                <div class="grid-status">
-                    <div id="st_r2_dash" class="badge">ТЭН 2</div>
-                    <div id="st_r3_dash" class="badge">ТЭН 3</div>
-                </div>
-                <div class="pwr-badge">ТЭН 1: <span id="pwr_val">--%</span></div>
-            </div>
-
-            <!-- КАРТОЧКА ЭНЕРГОПОТРЕБЛЕНИЯ -->
-            <div class="card" onclick="openOverlay('energy-overlay')">
-                <h3>Энергопотребление</h3>
-                <div style="text-align: center; margin-top: 30px;">
-                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 5px;">МОЩНОСТЬ</div>
-                    <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1; margin-bottom: 20px;"><span id="power_watts">--</span><span style="font-size: 24px; margin-left: 5px;">W</span></div>
-                    
-                    <div style="display: flex; gap: 20px; justify-content: center;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 10px; color: #8b949e; margin-bottom: 3px;">НАПРЯЖЕНИЕ</div>
-                            <div style="font-size: 24px; font-weight: 200; color: #a5d6ff;"><span id="voltage_volts">--</span><span style="font-size: 12px; margin-left: 2px;">V</span></div>
-                        </div>
-                        <div style="font-size: 18px; color: #30363d;">|</div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 10px; color: #8b949e; margin-bottom: 3px;">ТОК</div>
-                            <div style="font-size: 24px; font-weight: 200; color: #a5d6ff;"><span id="current_amps">--</span><span style="font-size: 12px; margin-left: 2px;">A</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card" onclick="openOverlay('security-overlay')">
-                <h3>Охрана</h3>
-                <div style="text-align: center; margin-top: 50px;">
-                    <div style="font-size: 14px; color: #8b949e;">Статус датчиков</div>
-                    <div style="font-size: 28px; margin-top: 15px;">🔒</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <!-- ==================== ОВЕРЛЕЙ КОТЛА ==================== -->
     <div id="boiler-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 30px; margin-top: 15px;">
-                    <!-- БОЛЬШАЯ ТЕМПЕРАТУРА СЛЕВА -->
                     <div style="text-align: center;">
                         <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1;"><span id="t_water_left">--</span>°</div>
                     </div>
-                    
-                    <!-- ВЕРТИКАЛЬНАЯ ЛИНИЯ -->
                     <div style="width: 1px; background: var(--border); height: 60px;"></div>
-                    
-                    <!-- МАЛЕНЬКАЯ ЦЕЛЬ СПРАВА -->
                     <div style="text-align: left; padding-top: 5px;">
                         <div style="font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px;">Цель</div>
                         <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1; margin-bottom: 15px;"><span id="l_sp_left">--</span>°</div>
-                        
                         <div style="font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px;">Давление</div>
                         <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;"><span id="kot_pressure">--</span></div>
                     </div>
                 </div>
-                
-                <!-- 2 КНОПКИ АВТО И МАНУАЛ РЯДОМ -->
                 <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <button id="m_auto" style="flex: 1; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setBoilerMode('auto')">AUTO</button>
+                    <button id="m_auto"   style="flex: 1; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setBoilerMode('auto')">AUTO</button>
                     <button id="m_manual" style="flex: 1; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setBoilerMode('manual')">MANUAL</button>
                 </div>
-                
-                <!-- КНОПКА OFF ВНИЗУ -->
                 <button id="m_off" style="width: 100%; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setBoilerMode('off')">OFF</button>
             </div>
-            
             <div class="column-divider"></div>
-            
             <div class="column">
-                <!-- БЛОК АВТО РЕЖИМА -->
                 <div id="boiler-auto-block" style="display: none;">
                     <h3 class="col-title">ПОГОДА-ЗАВИСИМАЯ АВТОМАТИКА</h3>
-                    <div style="font-size:20px; color:var(--accent); text-align: center; margin-bottom: 25px; font-weight: bold; letter-spacing: 1px;">
-                        (УЛИЦА: <span id="t_out_big">--</span>°)
-                    </div>
+                    <div style="font-size:20px; color:var(--accent); text-align: center; margin-bottom: 25px; font-weight: bold;">(УЛИЦА: <span id="t_out_big">--</span>°)</div>
                     <div style="font-size:12px; margin-top:10px;">Комната: <b id="l_rt">--</b>°</div>
                     <input type="range" min="18" max="28" step="0.5" id="r_rt" oninput="document.getElementById('l_rt').innerText=this.value" onchange="send('heater/room_temp/set', this.value)">
                     <div style="font-size:12px;">K-Factor: <b id="l_kf">--</b></div>
                     <input type="range" min="0.5" max="3.0" step="0.1" id="r_kf" oninput="document.getElementById('l_kf').innerText=this.value" onchange="send('heater/k_factor/set', this.value)">
                     <div class="pid-grid">
-                        <div><small>Kp</small><input type="number" step="0.1" id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
+                        <div><small>Kp</small><input type="number" step="0.1"  id="i_kp" onchange="send('heater/kp/set', this.value)"></div>
                         <div><small>Ki</small><input type="number" step="0.01" id="i_ki" onchange="send('heater/ki/set', this.value)"></div>
-                        <div><small>Kd</small><input type="number" step="0.1" id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
+                        <div><small>Kd</small><input type="number" step="0.1"  id="i_kd" onchange="send('heater/kd/set', this.value)"></div>
                     </div>
                 </div>
-                
-                <!-- БЛОК РУЧНОГО РЕЖИМА -->
                 <div id="boiler-manual-block" style="display: none;">
                     <h3 class="col-title">РУЧНОЕ УПРАВЛЕНИЕ</h3>
                     <div style="font-size:12px; margin-top:10px;">Вода цель: <b id="l_sp">--</b>°</div>
@@ -459,8 +252,6 @@
                     <div class="relay-item"><span>ТЭН 2</span><button id="sw_r2" class="toggle-btn" onclick="send('heater/relay2/set', states.r2?0:1)"></button></div>
                     <div class="relay-item"><span>ТЭН 3</span><button id="sw_r3" class="toggle-btn" onclick="send('heater/relay3/set', states.r3?0:1)"></button></div>
                 </div>
-                
-                <!-- БЛОК OFF РЕЖИМА -->
                 <div id="boiler-off-block" style="display: none; text-align: center; padding: 20px;">
                     <h3 class="col-title">КОТЕЛ ОТКЛЮЧЕН</h3>
                 </div>
@@ -469,6 +260,7 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
+    <!-- ==================== ОВЕРЛЕЙ ЗАЛА ==================== -->
     <div id="hall-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
@@ -481,12 +273,11 @@
                     </div>
                 </div>
                 <div id="window-status-text" class="status-row-box" style="margin-bottom: 15px;">ОКНО ЗАКРЫТО</div>
-                
-                <div class="slider-row-box" style="margin-bottom: 0;">
-                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">
-                        ШТОРЫ: <b id="l_shtora">--</b>%
-                    </div>
-                    <input type="range" min="0" max="100" id="r_shtora" oninput="updateCurtainVisual(this.value); document.getElementById('l_shtora').innerText=this.value" onchange="send('dom/shtoraZal/proc/set', this.value)">
+                <div class="slider-row-box">
+                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">ШТОРЫ: <b id="l_shtora">--</b>%</div>
+                    <input type="range" min="0" max="100" id="r_shtora"
+                           oninput="updateCurtainVisual(this.value); document.getElementById('l_shtora').innerText=this.value"
+                           onchange="send('dom/shtoraZal/proc/set', this.value)">
                 </div>
             </div>
             <div class="column-divider"></div>
@@ -504,16 +295,11 @@
                 </div>
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ВЕНТИЛЯЦИЯ</h3>
-                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ПРИТОЧКА</span>
                         <button id="sw_hall_vent" class="toggle-btn" onclick="send('dom/Pritok', states.pritok?0:1)"></button>
                     </div>
-                    
-                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">
-                        СКОРОСТЬ
-                    </div>
-                    
+                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">СКОРОСТЬ</div>
                     <div style="display: flex; gap: 8px; justify-content: center;">
                         <button id="hall_speed_1" style="flex: 1; padding: 8px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="setHallFanSpeed(1)">1 СКОР</button>
                         <button id="hall_speed_2" style="flex: 1; padding: 8px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="setHallFanSpeed(2)">2 СКОР</button>
@@ -524,6 +310,7 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
+    <!-- ==================== ОВЕРЛЕЙ СПАЛЬНИ ==================== -->
     <div id="bedroom-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: center;">
@@ -536,7 +323,6 @@
                     </div>
                 </div>
                 <div id="window-status-text-bed" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
-                
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-top: 15px;">
                     <h3 class="col-title" style="margin-top:0">ГАРДЕРОБ</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
@@ -554,7 +340,7 @@
                         <button id="sw_svbed" class="toggle-btn" onclick="send('dom/svSpalnyLamp/st', states.svbed?0:1)"></button>
                     </div>
                     <div class="btn-group" style="margin-bottom: 10px;">
-                        <button id="m_bed_day" onclick="send('dom/svSpalnyLamp/noc', 0)">ДЕНЬ</button>
+                        <button id="m_bed_day"   onclick="send('dom/svSpalnyLamp/noc', 0)">ДЕНЬ</button>
                         <button id="m_bed_night" onclick="send('dom/svSpalnyLamp/noc', 1)">НОЧЬ</button>
                     </div>
                     <input type="range" min="0" max="100" id="r_bed_dim" onchange="send('dom/svSpalnyLamp/dim', this.value)">
@@ -563,16 +349,11 @@
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <select id="cp_bed_rgb" class="color-selector" onchange="send('dom/svSpalnyNoch/rgb', this.value)">
-                            <option value="red">Красный</option>
-                            <option value="green">Зеленый</option>
-                            <option value="blue">Синий</option>
-                            <option value="yellow">Желтый</option>
-                            <option value="cyan">Голубой</option>
-                            <option value="magenta">Пурпурный</option>
-                            <option value="orange">Оранжевый</option>
-                            <option value="purple">Фиолетовый</option>
-                            <option value="pink">Розовый</option>
-                            <option value="white">Белый</option>
+                            <option value="red">Красный</option><option value="green">Зеленый</option>
+                            <option value="blue">Синий</option><option value="yellow">Желтый</option>
+                            <option value="cyan">Голубой</option><option value="magenta">Пурпурный</option>
+                            <option value="orange">Оранжевый</option><option value="purple">Фиолетовый</option>
+                            <option value="pink">Розовый</option><option value="white">Белый</option>
                         </select>
                         <button id="sw_svbed_rgb" class="toggle-btn" onclick="send('dom/svSpalnyNoch/st', states.svbed_rgb?0:1)"></button>
                     </div>
@@ -583,6 +364,7 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
+    <!-- ==================== ОВЕРЛЕЙ ДЕТСКОЙ ==================== -->
     <div id="children-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: center;">
@@ -595,7 +377,6 @@
                     </div>
                 </div>
                 <div id="window-status-text-det" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
-                
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border); margin-top: 15px;">
                     <h3 class="col-title" style="margin-top:0; text-align: center;">ЦЕЛЕВАЯ ТЕМПЕРАТУРА</h3>
                     <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 10px;">
@@ -614,7 +395,7 @@
                         <button id="sw_svdet" class="toggle-btn" onclick="send('dom/svDetLamp/st', states.svdet?0:1)"></button>
                     </div>
                     <div class="btn-group" style="margin-bottom: 10px;">
-                        <button id="m_det_day" onclick="send('dom/svDetLamp/noc', 0)">ДЕНЬ</button>
+                        <button id="m_det_day"   onclick="send('dom/svDetLamp/noc', 0)">ДЕНЬ</button>
                         <button id="m_det_night" onclick="send('dom/svDetLamp/noc', 1)">НОЧЬ</button>
                     </div>
                     <input type="range" min="0" max="100" id="r_det_dim" onchange="send('dom/svDetLamp/dim', this.value)">
@@ -623,16 +404,11 @@
                     <h3 class="col-title" style="margin-top:0">ЦВЕТНАЯ ЛАМПА</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <select id="cp_det_rgb" class="color-selector" onchange="send('dom/svDetNoch/rgb', this.value)">
-                            <option value="red">Красный</option>
-                            <option value="green">Зеленый</option>
-                            <option value="blue">Синий</option>
-                            <option value="yellow">Желтый</option>
-                            <option value="cyan">Голубой</option>
-                            <option value="magenta">Пурпурный</option>
-                            <option value="orange">Оранжевый</option>
-                            <option value="purple">Фиолетовый</option>
-                            <option value="pink">Розовый</option>
-                            <option value="white">Белый</option>
+                            <option value="red">Красный</option><option value="green">Зеленый</option>
+                            <option value="blue">Синий</option><option value="yellow">Желтый</option>
+                            <option value="cyan">Голубой</option><option value="magenta">Пурпурный</option>
+                            <option value="orange">Оранжевый</option><option value="purple">Фиолетовый</option>
+                            <option value="pink">Розовый</option><option value="white">Белый</option>
                         </select>
                         <button id="sw_svdet_rgb" class="toggle-btn" onclick="send('dom/svDetNoch/st', states.svdet_rgb?0:1)"></button>
                     </div>
@@ -643,6 +419,7 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
+    <!-- ==================== ОВЕРЛЕЙ КУХНИ ==================== -->
     <div id="kitchen-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: center;">
@@ -655,41 +432,32 @@
                     </div>
                 </div>
                 <div id="window-status-text-kit" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
-                <div id="door-status-text-kit" class="status-row-box" style="margin-top: 8px;">ДВЕРИ ЗАКРЫТЫ</div>
+                <div id="door-status-text-kit"   class="status-row-box" style="margin-top: 8px;">ДВЕРИ ЗАКРЫТЫ</div>
             </div>
             <div class="column-divider"></div>
             <div class="column" style="gap: 15px;">
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
-                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ОСНОВНОЙ СВЕТ</span>
                         <button id="sw_kit_light" class="toggle-btn" onclick="send('dom/svKuh1', states.kit_light?0:1)"></button>
                     </div>
-                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ПОДСВЕТКА РАБОЧЕЙ ЗОНЫ</span>
                         <button id="sw_kit_sub" class="toggle-btn" onclick="send('dom/svKuh2', states.kit_sub?0:1)"></button>
                     </div>
-                    
                     <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
                         <span class="label-inline">НОЧНИК</span>
                         <button id="sw_kit_night" class="toggle-btn" onclick="send('dom/svKuh3', states.kit_night?0:1)"></button>
                     </div>
                 </div>
-                
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ВЕНТИЛЯЦИЯ</h3>
-                    
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ВЫТЯЖКА</span>
                         <button id="sw_kit_fan" class="toggle-btn" onclick="send('dom/Vityjka', states.kit_fan?0:1)"></button>
                     </div>
-                    
-                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">
-                        СКОРОСТЬ
-                    </div>
-                    
+                    <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 10px; font-weight: bold; letter-spacing: 1px;">СКОРОСТЬ</div>
                     <div style="display: flex; gap: 8px; justify-content: center;">
                         <button id="fan_speed_1" style="flex: 1; padding: 8px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="setFanSpeed(1)">1 СКОР</button>
                         <button id="fan_speed_2" style="flex: 1; padding: 8px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="setFanSpeed(2)">2 СКОР</button>
@@ -700,11 +468,11 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
+    <!-- ==================== ОВЕРЛЕЙ ВАННОЙ ==================== -->
     <div id="bathroom-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <h3 class="col-title">ВОДОНАГРЕВАТЕЛЬ</h3>
-                
                 <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 30px; margin-top: 15px;">
                     <div id="bath-temp-container" style="text-align: center;">
                         <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1;"><span id="t_vod_ov">--</span>°</div>
@@ -715,29 +483,22 @@
                         <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;"><span id="t_vod_zad_ov">--</span>°</div>
                     </div>
                 </div>
-                
                 <button id="sw_water_stat" style="width: 100%; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; margin-bottom: 20px;" onclick="send('dom/vod/stat', states.water_stat?0:1)">ВЫКЛЮЧЕНО</button>
-                
-                <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 12px; font-weight: bold; letter-spacing: 1px;">
-                    РЕЖИМ РАБОТЫ
-                </div>
-                
+                <div style="font-size:10px; color:var(--accent); text-align: center; margin-bottom: 12px; font-weight: bold; letter-spacing: 1px;">РЕЖИМ РАБОТЫ</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button id="mode_turbo" style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(1)">TURBO</button>
+                    <button id="mode_turbo"  style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(1)">TURBO</button>
                     <button id="mode_normal" style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(2)">NORMAL</button>
-                    <button id="mode_eco" style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(3)">ECO</button>
-                    <button id="mode_min" style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(4)">MIN</button>
+                    <button id="mode_eco"    style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(3)">ECO</button>
+                    <button id="mode_min"    style="padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold; transition: 0.3s;" onclick="setWaterMode(4)">MIN</button>
                 </div>
             </div>
-            
             <div class="column-divider"></div>
-            
             <div class="column" style="gap: 15px;">
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ОСНОВНОЙ СВЕТ</span>
-                        <button id="sw_bath_light" class="toggle-btn" onclick="send('dom/svVan', states.bath_light?0:1)"></button>
+                        <button id="sw_bath_light"  class="toggle-btn" onclick="send('dom/svVan', states.bath_light?0:1)"></button>
                     </div>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
                         <span class="label-inline">ЗЕРКАЛО</span>
@@ -745,7 +506,7 @@
                     </div>
                     <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
                         <span class="label-inline">ДУШЕВАЯ</span>
-                        <button id="sw_bath_dush" class="toggle-btn" onclick="send('dom/svVanDush', states.bath_dush?0:1)"></button>
+                        <button id="sw_bath_dush"   class="toggle-btn" onclick="send('dom/svVanDush', states.bath_dush?0:1)"></button>
                     </div>
                 </div>
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
@@ -760,17 +521,15 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- OVERLAY ЭНЕРГОПОТРЕБЛЕНИЯ -->
+    <!-- ==================== ОВЕРЛЕЙ ЭНЕРГОПОТРЕБЛЕНИЯ ==================== -->
     <div id="energy-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <h3 class="col-title">ЭНЕРГОПОТРЕБЛЕНИЕ</h3>
-                
                 <div style="text-align: center; margin-bottom: 30px; margin-top: 15px;">
                     <div style="font-size: 12px; color: #8b949e; margin-bottom: 5px;">МОЩНОСТЬ</div>
                     <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1;"><span id="power_watts_ov">--</span><span style="font-size: 24px; margin-left: 5px;">W</span></div>
                 </div>
-
                 <div style="display: flex; gap: 20px; justify-content: center;">
                     <div style="text-align: center;">
                         <div style="font-size: 10px; color: #8b949e; margin-bottom: 3px;">НАПРЯЖЕНИЕ</div>
@@ -783,9 +542,7 @@
                     </div>
                 </div>
             </div>
-            
             <div class="column-divider"></div>
-            
             <div class="column" style="gap: 15px;">
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ПОТРЕБИТЕЛИ</h3>
@@ -803,57 +560,42 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- OVERLAY ОХРАНЫ -->
+    <!-- ==================== ОВЕРЛЕЙ ОХРАНЫ ==================== -->
     <div id="security-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <h3 class="col-title">ОХРАНА</h3>
-                
                 <div style="text-align: center; margin: 30px 0 20px 0;">
                     <div style="font-size: 60px; margin-bottom: 15px;" id="security_lock_icon">🔒</div>
                     <button style="width: 100%; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="toggleSecurityMode()">ВКЛЮЧИТЬ/ВЫКЛЮЧИТЬ</button>
                 </div>
-                
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px;">
                     <div style="font-size: 12px; color: #a5d6ff; text-align: center; font-weight: bold;" id="security_windows_status">Все окна закрыты</div>
                 </div>
-                
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
                     <div style="font-size: 12px; color: #a5d6ff; text-align: center; font-weight: bold;" id="security_doors_status">Двери закрыты</div>
                 </div>
             </div>
-            
             <div class="column-divider"></div>
-            
             <div class="column" style="gap: 15px;">
                 <h3 class="col-title">СТАТУС ДАТЧИКОВ</h3>
-                
-                <!-- ЗАЛ -->
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
                     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">ЗАЛ</div>
                     <div id="sensor_hall_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
                 </div>
-
-                <!-- СПАЛЬНЯ -->
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
                     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">СПАЛЬНЯ</div>
                     <div id="sensor_bed_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
                 </div>
-
-                <!-- ДЕТСКАЯ -->
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
                     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">ДЕТСКАЯ</div>
                     <div id="sensor_kids_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
                 </div>
-
-                <!-- КУХНЯ -->
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
                     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">КУХНЯ</div>
                     <div id="sensor_kitchen_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
-                    <div id="sensor_kitchen_door" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Двери: ЗАКРЫТО</div>
+                    <div id="sensor_kitchen_door"   style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Двери: ЗАКРЫТО</div>
                 </div>
-
-                <!-- ВХОДНАЯ ДВЕРЬ -->
                 <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
                     <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">ВХОДНАЯ ДВЕРЬ</div>
                     <div id="sensor_front_door" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Дверь: ЗАКРЫТО</div>
@@ -863,31 +605,26 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- OVERLAY УЛИЦА -->
+    <!-- ==================== ОВЕРЛЕЙ УЛИЦЫ ==================== -->
     <div id="street-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <h3 class="col-title">УЛИЦА</h3>
-                
                 <div style="text-align: center; margin-bottom: 25px; margin-top: 15px;">
                     <div style="font-size: 12px; color: #8b949e; margin-bottom: 5px;">ТЕМПЕРАТУРА</div>
                     <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1;"><span id="t_street_ov">--</span>°</div>
                 </div>
-
                 <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 25px; justify-content: center;">
                     <div style="width: 1px; background: var(--border); height: 80px;"></div>
                     <div style="text-align: left;">
                         <div style="font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px;">Влажность</div>
                         <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1; margin-bottom: 15px;"><span id="h_street_ov">--%</span></div>
-                        
                         <div style="font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px;">Давление</div>
                         <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;"><span id="p_street_ov">--</span></div>
                     </div>
                 </div>
             </div>
-            
             <div class="column-divider"></div>
-            
             <div class="column" style="gap: 15px;">
                 <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
                     <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
@@ -905,917 +642,8 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <script>
-        const cfg = { h: 'm9.wqtt.ru', p: 13733, u: 'u_OCW7RS', w: 'tY9lf91e', id: 'PRO_' + Math.random().toString(16).substr(2,4) };
-        const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
-        
-        // states расширен для Детской, Кухни и Ванной
-        let states = { r2:0, r3:0, sv1:0, sv2:0, svbed:0, svbed_rgb:0, svdet:0, svdet_rgb:0, mode:'off', bednoc: 0, detnoc: 0, kit_light:0, kit_sub:0, kit_night:0, kit_fan:0, kit_fan_speed:0, bath_light:0, bath_mirror:0, bath_dush:0, bath_vent:0, water_temp:0, water_zad:0, water_mode:2, water_stat:0, hall_vent:0, hall_fan_speed:0, wardrobe_light:0, pritok:0, pritok_speed:0, det_zad:0, street_light:0, street_bbq:0, security_mode:0 };
-        let isConnected = false;
-        const colorMap = { 'red': 'rgba(255, 0, 0, 0.6)', 'green': 'rgba(0, 255, 0, 0.6)', 'blue': 'rgba(0, 0, 255, 0.6)', 'yellow': 'rgba(255, 255, 0, 0.6)', 'cyan': 'rgba(0, 255, 255, 0.6)', 'magenta': 'rgba(255, 0, 255, 0.6)', 'orange': 'rgba(255, 165, 0, 0.6)', 'purple': 'rgba(128, 0, 128, 0.6)', 'pink': 'rgba(255, 192, 203, 0.6)', 'white': 'rgba(255, 255, 255, 0.5)' };
-
-        function checkPass() { 
-            const pass = document.getElementById('passInput').value;
-            if (pass === "1902") { 
-                // Реальный режим
-                isDemoMode = false;
-                document.getElementById('demo-badge').style.display = 'none';
-                document.getElementById('auth-screen').style.display = 'none'; 
-                document.getElementById('app-content').style.display = 'flex'; 
-                connect(); 
-            } else if (pass.length > 0) {
-                // Демо-режим при неверном пароле
-                isDemoMode = true;
-                document.getElementById('demo-badge').style.display = 'block';
-                document.getElementById('auth-screen').style.display = 'none'; 
-                document.getElementById('app-content').style.display = 'flex'; 
-                updateClock();
-                setInterval(updateClock, 1000);
-                startDemoSimulation();
-            } else {
-                alert('Введите пароль!');
-            }
-        }
-        
-        let isDemoMode = false;
-        
-        function connect() { 
-            mqtt.connect({ 
-                userName: cfg.u, 
-                password: cfg.w, 
-                useSSL: true, 
-                keepAliveInterval: 60,
-                onSuccess: () => { 
-                    isConnected = true;
-                    mqtt.subscribe("heater/#"); 
-                    mqtt.subscribe("dom/#"); 
-                }, 
-                onFailure: () => setTimeout(connect, 5000) 
-            }); 
-        }
-
-        mqtt.onConnectionLost = (responseObject) => {
-            isConnected = false;
-            if (responseObject.errorCode !== 0) {
-                console.log("onConnectionLost:"+responseObject.errorMessage);
-                setTimeout(connect, 5000);
-            }
-        };
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                if (!isConnected) connect();
-            }
-        });
-
-        mqtt.onMessageArrived = (m) => {
-            const t = m.destinationName; const v = m.payloadString;
-            // КОТЕЛ
-            if(t === 'heater/temperature') { 
-                if(document.getElementById('t_water')) document.getElementById('t_water').innerText = v;
-                if(document.getElementById('t_water_left')) document.getElementById('t_water_left').innerText = v;
-            }
-            if(t === 'heater/setpoint/state') { 
-                if(document.getElementById('l_sp')) document.getElementById('l_sp').innerText = v;
-                if(document.getElementById('l_sp_dash')) document.getElementById('l_sp_dash').innerText = v;
-                if(document.getElementById('l_sp_left')) document.getElementById('l_sp_left').innerText = v;
-                if(document.getElementById('r_sp')) document.getElementById('r_sp').value = v;
-            }
-            if(t === 'heater/mode/state') updateBoilerMode(v);
-            if(t === 'heater/relay2/state') updateItem('r2', v);
-            if(t === 'heater/relay3/state') updateItem('r3', v);
-            if(t === 'heater/power_percent') { 
-                if(document.getElementById('pwr_val')) document.getElementById('pwr_val').innerText = v + '%';
-            }
-            
-            // ОБЩЕЕ / ЗАЛ
-            if(t === 'dom/tempUlica') { 
-                if(document.getElementById('t_out')) document.getElementById('t_out').innerText = v;
-                if(document.getElementById('t_out_big')) document.getElementById('t_out_big').innerText = v;
-                if(document.getElementById('t_street')) document.getElementById('t_street').innerText = v;
-            }
-            if(t === 'dom/vlagUlica') { 
-                if(document.getElementById('h_street')) document.getElementById('h_street').innerText = v;
-            }
-            if(t === 'dom/davlUlica') { 
-                if(document.getElementById('p_street')) document.getElementById('p_street').innerText = v;
-            }
-            if(t === 'heater/room_temp/state') { 
-                if(document.getElementById('l_rt')) document.getElementById('l_rt').innerText = v;
-                if(document.getElementById('r_rt')) document.getElementById('r_rt').value = v;
-            }
-            if(t === 'heater/k_factor/state') { 
-                if(document.getElementById('l_kf')) document.getElementById('l_kf').innerText = v;
-                if(document.getElementById('r_kf')) document.getElementById('r_kf').value = v;
-            }
-            if(t === 'heater/kp/state') { 
-                if(document.getElementById('i_kp')) document.getElementById('i_kp').value = v;
-            }
-            if(t === 'heater/ki/state') { 
-                if(document.getElementById('i_ki')) document.getElementById('i_ki').value = v;
-            }
-            if(t === 'heater/kd/state') { 
-                if(document.getElementById('i_kd')) document.getElementById('i_kd').value = v;
-            }
-            if(t === 'dom/tempZal') { 
-                if(document.getElementById('t_hall')) document.getElementById('t_hall').innerText = v;
-                if(document.getElementById('t_hall_ov')) document.getElementById('t_hall_ov').innerText = v;
-                updateHomeCardAverage();
-            }
-            if(t === 'dom/vlagZal') { 
-                if(document.getElementById('h_hall')) document.getElementById('h_hall').innerText = v;
-                if(document.getElementById('h_hall_ov')) document.getElementById('h_hall_ov').innerText = v;
-                updateHomeCardAverage();
-            }
-            if(t === 'dom/svZal1') { updateItem('sv1', v); updateHomeCardGlow(); }
-            if(t === 'dom/svZal2') { updateItem('sv2', v); updateHomeCardGlow(); }
-            if(t === 'dom/shtoraZal/proc/state') { 
-                const p = parseInt(v); 
-                if(document.getElementById('l_shtora')) document.getElementById('l_shtora').innerText = p;
-                if(document.getElementById('curt-label-dash')) document.getElementById('curt-label-dash').innerText = 'Шторы: ' + p + '%';
-                if(document.getElementById('r_shtora')) document.getElementById('r_shtora').value = p;
-                updateCurtainVisual(p); 
-            }
-            if(t === 'dom/oknoZal') updateWindowStatus('window-status-text', v, 't_hall');
-
-            // ПРИТОЧКА (ЗАЛ)
-            if(t === 'dom/Pritok') { states.pritok = parseInt(v); updateButtonState('sw_hall_vent', states.pritok); }
-            if(t === 'dom/Pritok1') { states.pritok_speed = parseInt(v); updateHallFanSpeedButtons(v); }
-
-            // СПАЛЬНЯ
-            if(t === 'dom/tempKsu1') { 
-                if(document.getElementById('t_bed')) document.getElementById('t_bed').innerText = v;
-                if(document.getElementById('t_bed_ov')) document.getElementById('t_bed_ov').innerText = v;
-                updateHomeCardAverage();
-            }
-            if(t === 'dom/vlagKsu') { 
-                if(document.getElementById('h_bed')) document.getElementById('h_bed').innerText = v;
-                if(document.getElementById('h_bed_ov')) document.getElementById('h_bed_ov').innerText = v;
-                updateHomeCardAverage();
-            }
-            if(t === 'dom/oknoSpalny') updateWindowStatus('window-status-text-bed', v, 't_bed');
-            if(t === 'dom/svSpalnyLamp/st') { updateItem('svbed', v); updateHomeCardGlow(); }
-            if(t === 'dom/svSpalnyLamp/dim') { 
-                if(document.getElementById('r_bed_dim')) document.getElementById('r_bed_dim').value = v;
-            }
-            if(t === 'dom/svSpalnyLamp/noc') { 
-                states.bednoc = parseInt(v);
-                if(document.getElementById('m_bed_day')) document.getElementById('m_bed_day').className = states.bednoc == 0 ? 'active' : '';
-                if(document.getElementById('m_bed_night')) document.getElementById('m_bed_night').className = states.bednoc == 1 ? 'active' : '';
-                updateItem('svbed', states.svbed);
-            }
-            if(t === 'dom/svSpalnyNoch/st') updateItem('svbed_rgb', v);
-            if(t === 'dom/svSpalnyNoch/br') { 
-                if(document.getElementById('r_bed_br')) document.getElementById('r_bed_br').value = v;
-            }
-            if(t === 'dom/svSpalnyNoch/rgb') { 
-                const colorVal = v.toLowerCase(); 
-                const rgba = colorMap[colorVal] || 'rgba(88, 166, 255, 0.6)'; 
-                document.documentElement.style.setProperty('--bed-rgb', rgba);
-                if(document.getElementById('cp_bed_rgb')) document.getElementById('cp_bed_rgb').value = colorVal;
-                updateItem('svbed_rgb', states.svbed_rgb);
-            }
-
-            // ДЕТСКАЯ
-            if(t === 'dom/tempMot1') { 
-                if(document.getElementById('t_det')) document.getElementById('t_det').innerText = v;
-                if(document.getElementById('t_det_ov')) document.getElementById('t_det_ov').innerText = v;
-                updateHomeCardAverage();
-            }
-            if(t === 'dom/vlagMot') { 
-                if(document.getElementById('h_det')) document.getElementById('h_det').innerText = v;
-                if(document.getElementById('h_det_ov')) document.getElementById('h_det_ov').innerText = v;
-                updateHomeCardAverage();
-            }
-            if(t === 'dom/tempMotzad') { 
-                states.det_zad = parseFloat(v);
-                if(document.getElementById('l_det_zad')) document.getElementById('l_det_zad').innerText = parseFloat(v).toFixed(1);
-            }
-            if(t === 'dom/oknoDetskay') updateWindowStatus('window-status-text-det', v, 't_det');
-            if(t === 'dom/svDetLamp/st') { updateItem('svdet', v); updateHomeCardGlow(); }
-            if(t === 'dom/svDetLamp/dim') { 
-                if(document.getElementById('r_det_dim')) document.getElementById('r_det_dim').value = v;
-            }
-            if(t === 'dom/svDetLamp/noc') { 
-                states.detnoc = parseInt(v);
-                if(document.getElementById('m_det_day')) document.getElementById('m_det_day').className = states.detnoc == 0 ? 'active' : '';
-                if(document.getElementById('m_det_night')) document.getElementById('m_det_night').className = states.detnoc == 1 ? 'active' : '';
-                updateItem('svdet', states.svdet);
-            }
-            if(t === 'dom/svDetNoch/st') updateItem('svdet_rgb', v);
-            if(t === 'dom/svDetNoch/br') { 
-                if(document.getElementById('r_det_br')) document.getElementById('r_det_br').value = v;
-            }
-            if(t === 'dom/svDetNoch/rgb') { 
-                const colorVal = v.toLowerCase(); 
-                const rgba = colorMap[colorVal] || 'rgba(88, 166, 255, 0.6)'; 
-                document.documentElement.style.setProperty('--det-rgb', rgba);
-                if(document.getElementById('cp_det_rgb')) document.getElementById('cp_det_rgb').value = colorVal;
-                updateItem('svdet_rgb', states.svdet_rgb);
-            }
-
-            // КУХНЯ
-            if(t === 'dom/tempZal') { 
-                if(document.getElementById('t_kit')) document.getElementById('t_kit').innerText = v;
-                if(document.getElementById('t_kit_ov')) document.getElementById('t_kit_ov').innerText = v;
-            }
-            if(t === 'dom/vlagZal') { 
-                if(document.getElementById('h_kit')) document.getElementById('h_kit').innerText = v;
-                if(document.getElementById('h_kit_ov')) document.getElementById('h_kit_ov').innerText = v;
-            }
-            if(t === 'dom/svKuh1') updateLocalState('dom/svKuh1', v);
-            if(t === 'dom/svKuh2') updateLocalState('dom/svKuh2', v);
-            if(t === 'dom/svKuh3') updateLocalState('dom/svKuh3', v);
-            if(t === 'dom/Vityjka') updateLocalState('dom/Vityjka', v);
-            if(t === 'dom/Vityjka1') updateLocalState('dom/Vityjka1', v);
-            if(t === 'dom/oknoKuhny') updateLocalState('dom/oknoKuhny', v);
-            if(t === 'dom/dverKuhny') updateLocalState('dom/dverKuhny', v);
-
-            // ВАННАЯ
-            if(t === 'dom/vod/temp') { 
-                if(document.getElementById('t_vod')) document.getElementById('t_vod').innerText = v;
-                if(document.getElementById('t_vod_ov')) document.getElementById('t_vod_ov').innerText = v;
-                states.water_temp = parseFloat(v);
-            }
-            if(t === 'dom/vod/zad') { 
-                if(document.getElementById('t_vod_zad')) document.getElementById('t_vod_zad').innerText = v;
-                if(document.getElementById('t_vod_zad_ov')) document.getElementById('t_vod_zad_ov').innerText = v;
-                states.water_zad = parseFloat(v);
-            }
-            if(t === 'dom/vod/regim') { states.water_mode = parseInt(v); updateWaterModeButtons(v); }
-            if(t === 'dom/svVan') { states.bath_light = parseInt(v); updateButtonState('sw_bath_light', states.bath_light); updateBathroomGlow(); updateHomeCardGlow(); }
-            if(t === 'dom/svVanZerkalo') { states.bath_mirror = parseInt(v); updateButtonState('sw_bath_mirror', states.bath_mirror); }
-            if(t === 'dom/svVanDush') { states.bath_dush = parseInt(v); updateButtonState('sw_bath_dush', states.bath_dush); updateBathroomGlow(); }
-            if(t === 'dom/svVanVent') { states.bath_vent = parseInt(v); updateButtonState('sw_bath_vent', states.bath_vent); }
-            if(t === 'dom/vod/stat') { states.water_stat = parseInt(v); updateWaterStatDisplay(); }
-            
-            // ДАВЛЕНИЕ КОТЛА
-            if(t === 'dom/kotD') { 
-                if(document.getElementById('kot_pressure')) document.getElementById('kot_pressure').innerText = v;
-            }
-            
-            // ЭНЕРГОПОТРЕБЛЕНИЕ
-            if(t === 'dom/mojnost') { 
-                if(document.getElementById('power_watts')) document.getElementById('power_watts').innerText = v;
-                if(document.getElementById('power_watts_ov')) document.getElementById('power_watts_ov').innerText = v;
-            }
-            if(t === 'dom/napr') { 
-                if(document.getElementById('voltage_volts')) document.getElementById('voltage_volts').innerText = v;
-                if(document.getElementById('voltage_volts_ov')) document.getElementById('voltage_volts_ov').innerText = v;
-            }
-            if(t === 'dom/tok') { 
-                if(document.getElementById('current_amps')) document.getElementById('current_amps').innerText = v;
-                if(document.getElementById('current_amps_ov')) document.getElementById('current_amps_ov').innerText = v;
-            }
-            
-            // ПОТРЕБИТЕЛИ МОЩНОСТИ
-            if(t === 'dom/mojnost/kot') { 
-                if(document.getElementById('power_boiler')) document.getElementById('power_boiler').innerText = v;
-            }
-            if(t === 'dom/mojnost/vodogrey') { 
-                if(document.getElementById('power_water_heater')) document.getElementById('power_water_heater').innerText = v;
-            }
-            
-            // ДАТЧИКИ ОХРАНЫ
-            if(t === 'dom/oknoZal') updateSecuritySensor('sensor_hall_window', v);
-            if(t === 'dom/oknoSpalny') updateSecuritySensor('sensor_bed_window', v);
-            if(t === 'dom/oknoDetskay') updateSecuritySensor('sensor_kids_window', v);
-            if(t === 'dom/oknoKuhny') updateSecuritySensor('sensor_kitchen_window', v);
-            if(t === 'dom/dverKuhny') updateSecuritySensor('sensor_kitchen_door', v);
-            
-            // УЛИЦА
-            if(t === 'dom/svUlica') { 
-                states.street_light = parseInt(v); 
-                updateButtonState('sw_street_light', states.street_light); 
-                updateStreetGlow();
-            }
-            if(t === 'dom/svMangal') { 
-                states.street_bbq = parseInt(v); 
-                updateButtonState('sw_street_bbq', states.street_bbq); 
-                updateStreetGlow();
-            }
-            
-            // ОХРАНА
-            if(t === 'dom/ohrana') { 
-                states.security_mode = parseInt(v);
-                updateSecurityDisplay();
-                updateSecurityWindowsStatus();
-                updateSecurityDoorsStatus();
-            }
-        };
-
-        function updateStreetGlow() {
-            const streetCard = document.getElementById('card-street');
-            if (!streetCard) return;
-            
-            // При включении света - низ светится
-            if (states.street_light) {
-                const shadow = 'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
-                document.documentElement.style.setProperty('--street-glow-bottom', shadow);
-                streetCard.style.borderBottom = '1px solid rgba(88, 166, 255, 0.4)';
-            } else {
-                document.documentElement.style.setProperty('--street-glow-bottom', 'inset 0 0 0 transparent');
-                streetCard.style.borderBottom = '1px solid transparent';
-            }
-            
-            // При включении мангала - верх светится
-            if (states.street_bbq) {
-                const shadow = 'inset 0 70px 110px -30px rgba(88, 166, 255, 0.6)';
-                document.documentElement.style.setProperty('--street-glow-top', shadow);
-                streetCard.style.borderTop = '1px solid rgba(88, 166, 255, 0.7)';
-            } else {
-                document.documentElement.style.setProperty('--street-glow-top', 'inset 0 0 0 transparent');
-                streetCard.style.borderTop = '1px solid transparent';
-            }
-        }
-        
-        function toggleSecurityMode() {
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: Переключение охраны');
-                states.security_mode = states.security_mode ? 0 : 1;
-                updateSecurityDisplay();
-                return;
-            }
-            send('dom/ohrana', states.security_mode ? 0 : 1);
-        }
-        
-        function updateSecurityDisplay() {
-            const lockIcon = document.getElementById('security_lock_icon');
-            if (lockIcon) {
-                lockIcon.innerText = states.security_mode ? '🔒' : '🔓';
-            }
-        }
-        
-        function updateSecurityWindowsStatus() {
-            const elem = document.getElementById('security_windows_status');
-            if (!elem) return;
-            
-            // Проверяем все окна (значение 1 = открыто)
-            const hallWindow = parseInt(document.getElementById('t_hall')?.getAttribute('data-window') || 0);
-            const bedWindow = parseInt(document.getElementById('t_bed')?.getAttribute('data-window') || 0);
-            const kidsWindow = parseInt(document.getElementById('t_det')?.getAttribute('data-window') || 0);
-            const kitWindow = parseInt(document.getElementById('t_kit')?.getAttribute('data-window') || 0);
-            
-            const windowsOpen = hallWindow || bedWindow || kidsWindow || kitWindow;
-            elem.innerText = windowsOpen ? 'Окно открыто' : 'Все окна закрыты';
-            elem.style.color = windowsOpen ? '#ff6b6b' : '#a5d6ff';
-        }
-        
-        function updateSecurityDoorsStatus() {
-            const elem = document.getElementById('security_doors_status');
-            if (!elem) return;
-            
-            // Проверяем все двери (значение 1 = открыто)
-            const kitDoor = parseInt(document.getElementById('t_kit')?.getAttribute('data-door') || 0);
-            
-            const doorsOpen = kitDoor;
-            elem.innerText = doorsOpen ? 'Дверь открыта' : 'Двери закрыты';
-            elem.style.color = doorsOpen ? '#ff6b6b' : '#a5d6ff';
-        }
-        
-        function updateSecuritySensor(elementId, value) {
-            const elem = document.getElementById(elementId);
-            if (!elem) return;
-            
-            const sensorName = elementId.replace('sensor_', '').replace(/_/g, ' ').toUpperCase();
-            const status = parseInt(value) === 1 ? 'ОТКРЫТО' : 'ЗАКРЫТО';
-            const statusColor = parseInt(value) === 1 ? '#ff6b6b' : '#58a6ff';
-            
-            let label = '';
-            if (elementId.includes('window')) label = 'Окно: ';
-            else if (elementId.includes('door')) label = 'Двери: ';
-            else label = 'Дверь: ';
-            
-            elem.innerHTML = `<span style="color: ${statusColor};">${label}${status}</span>`;
-        }
-        
-        function updateCurtainVisual(val) { const p = parseInt(val); const move = (100 - p) * 0.9; document.getElementById('curt-l').style.transform = `translateX(-${move}%)`; document.getElementById('curt-r').style.transform = `translateX(${move}%)`; }
-        
-        function updateWindowStatus(textId, val, tempId) {
-            const statusTxt = document.getElementById(textId);
-            const tempDisplay = document.getElementById(tempId);
-            const tempDisplayOv = document.getElementById(tempId + '_ov');
-            if(val == "1") {
-                if(statusTxt) { statusTxt.innerText = "ОКНО ОТКРЫТО"; statusTxt.style.color = "var(--accent)"; }
-                if(tempDisplay) tempDisplay.classList.add('temp-pulse');
-                if(tempDisplayOv) tempDisplayOv.classList.add('temp-pulse');
-            } else {
-                if(statusTxt) { statusTxt.innerText = "ОКНО ЗАКРЫТО"; statusTxt.style.color = "var(--text)"; }
-                if(tempDisplay) tempDisplay.classList.remove('temp-pulse');
-                if(tempDisplayOv) tempDisplayOv.classList.remove('temp-pulse');
-            }
-        }
-
-        function updateItem(key, val) {
-            states[key] = parseInt(val);
-            const btnFix = (key === 'svbed_rgb') ? document.getElementById('sw_svbed_rgb') : 
-                           (key === 'svdet_rgb') ? document.getElementById('sw_svdet_rgb') : 
-                           document.getElementById('sw_' + key);
-            
-            const badge = document.getElementById('st_' + key + '_dash');
-            if(btnFix) btnFix.className = states[key] ? 'toggle-btn is-on' : 'toggle-btn';
-            if(badge) badge.className = states[key] ? 'badge active' : 'badge';
-            
-            // ЗАЛ
-            const hallCard = document.getElementById('card-hall');
-            if(key === 'sv1' || key === 'sv2') {
-                if(states.sv1) hallCard.classList.add('glow-main'); else hallCard.classList.remove('glow-main');
-                if(states.sv2) hallCard.classList.add('glow-extra'); else hallCard.classList.remove('glow-extra');
-            }
-            
-            // СПАЛЬНЯ
-            const bedCard = document.getElementById('card-bedroom');
-            if(key === 'svbed' || key === 'bednoc') {
-                if(states.svbed) {
-                    const shadow = states.bednoc === 1 ? 'inset 0 -60px 100px -20px rgba(255, 180, 50, 0.4), inset 40px 0 70px -30px rgba(255, 180, 50, 0.2), inset -40px 0 70px -30px rgba(255, 180, 50, 0.2)' : 'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
-                    document.documentElement.style.setProperty('--bed-glow-bottom', shadow);
-                    bedCard.style.borderBottom = states.bednoc === 1 ? '1px solid rgba(255, 180, 50, 0.4)' : '1px solid rgba(88, 166, 255, 0.4)';
-                } else { document.documentElement.style.setProperty('--bed-glow-bottom', 'inset 0 0 0 transparent'); bedCard.style.borderBottom = '1px solid transparent'; }
-            }
-            if(key === 'svbed_rgb') {
-                if(states.svbed_rgb) {
-                    const rgbColor = getComputedStyle(document.documentElement).getPropertyValue('--bed-rgb');
-                    document.documentElement.style.setProperty('--bed-glow-top', `inset 0 70px 110px -30px ${rgbColor}`);
-                    bedCard.style.borderTop = `1px solid ${rgbColor}`;
-                } else { document.documentElement.style.setProperty('--bed-glow-top', 'inset 0 0 0 transparent'); bedCard.style.borderTop = '1px solid transparent'; }
-            }
-
-            // ДЕТСКАЯ
-            const detCard = document.getElementById('card-children');
-            if(key === 'svdet' || key === 'detnoc') {
-                if(states.svdet) {
-                    const shadow = states.detnoc === 1 ? 'inset 0 -60px 100px -20px rgba(255, 180, 50, 0.4), inset 40px 0 70px -30px rgba(255, 180, 50, 0.2), inset -40px 0 70px -30px rgba(255, 180, 50, 0.2)' : 'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
-                    document.documentElement.style.setProperty('--det-glow-bottom', shadow);
-                    detCard.style.borderBottom = states.detnoc === 1 ? '1px solid rgba(255, 180, 50, 0.4)' : '1px solid rgba(88, 166, 255, 0.4)';
-                } else { document.documentElement.style.setProperty('--det-glow-bottom', 'inset 0 0 0 transparent'); detCard.style.borderBottom = '1px solid transparent'; }
-            }
-            if(key === 'svdet_rgb') {
-                if(states.svdet_rgb) {
-                    const rgbColorDet = getComputedStyle(document.documentElement).getPropertyValue('--det-rgb');
-                    document.documentElement.style.setProperty('--det-glow-top', `inset 0 70px 110px -30px ${rgbColorDet}`);
-                    detCard.style.borderTop = `1px solid ${rgbColorDet}`;
-                } else { document.documentElement.style.setProperty('--det-glow-top', 'inset 0 0 0 transparent'); detCard.style.borderTop = '1px solid transparent'; }
-            }
-        }
-
-        function setBoilerMode(mode) {
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: Режим котла = ' + mode);
-                updateBoilerModeDisplay(mode);
-                return;
-            }
-            send('heater/mode/set', mode);
-            updateBoilerModeDisplay(mode);
-        }
-        
-        function updateBoilerModeDisplay(mode) {
-            // Скрываем все блоки
-            document.getElementById('boiler-auto-block').style.display = 'none';
-            document.getElementById('boiler-manual-block').style.display = 'none';
-            document.getElementById('boiler-off-block').style.display = 'none';
-            
-            // Обновляем кнопки режимов
-            const btnAuto = document.getElementById('m_auto');
-            const btnManual = document.getElementById('m_manual');
-            const btnOff = document.getElementById('m_off');
-            
-            // Убираем активный класс у всех
-            btnAuto.style.background = '#30363d';
-            btnAuto.style.color = '#c9d1d9';
-            btnManual.style.background = '#30363d';
-            btnManual.style.color = '#c9d1d9';
-            btnOff.style.background = '#30363d';
-            btnOff.style.color = '#c9d1d9';
-            
-            // Показываем нужный блок и подсвечиваем кнопку
-            if (mode === 'auto') {
-                document.getElementById('boiler-auto-block').style.display = 'block';
-                btnAuto.style.background = '#58a6ff';
-                btnAuto.style.color = '#fff';
-            } else if (mode === 'manual') {
-                document.getElementById('boiler-manual-block').style.display = 'block';
-                btnManual.style.background = '#58a6ff';
-                btnManual.style.color = '#fff';
-            } else if (mode === 'off') {
-                document.getElementById('boiler-off-block').style.display = 'block';
-                btnOff.style.background = '#58a6ff';
-                btnOff.style.color = '#fff';
-            }
-        }
-        
-        function updateBoilerMode(m) {
-            states.mode = m;
-            updateBoilerModeDisplay(m);
-            ['auto','manual','off'].forEach(x => {
-                const bge = document.getElementById('badge_'+x);
-                if(bge) bge.style.display = (m === x ? 'block' : 'none');
-            });
-        }
-
-        function send(t, v) { 
-            // В демо-режиме не отправляем на сервер
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: ' + t + ' = ' + v);
-                updateLocalState(t, v);
-                return;
-            }
-            
-            // В реальном режиме отправляем на MQTT
-            if(!isConnected) return;
-            const msg = new Paho.MQTT.Message(String(v)); 
-            msg.destinationName = t; 
-            msg.retained = true; 
-            mqtt.send(msg); 
-        }
-        
-        function updateLocalState(topic, value) {
-            // Для кухни
-            if (topic === 'dom/svKuh1') {
-                states.kit_light = parseInt(value);
-                updateButtonState('sw_kit_light', states.kit_light);
-                updateKitchenGlow();
-                updateHomeCardGlow();
-            }
-            if (topic === 'dom/svKuh2') {
-                states.kit_sub = parseInt(value);
-                updateButtonState('sw_kit_sub', states.kit_sub);
-                updateKitchenGlow();
-                updateHomeCardGlow();
-            }
-            if (topic === 'dom/svKuh3') {
-                states.kit_night = parseInt(value);
-                updateButtonState('sw_kit_night', states.kit_night);
-                updateHomeCardGlow();
-            }
-            if (topic === 'dom/Vityjka') {
-                states.kit_fan = parseInt(value);
-                updateButtonState('sw_kit_fan', states.kit_fan);
-            }
-            if (topic === 'dom/Vityjka1') {
-                states.kit_fan_speed = parseInt(value);
-                updateFanSpeedButtons(value);
-            }
-            if (topic === 'dom/oknoKuhny') {
-                updateWindowStatus('window-status-text-kit', value, 't_kit');
-            }
-            if (topic === 'dom/dverKuhny') {
-                updateDoorStatus('door-status-text-kit', value, 't_kit');
-            }
-        }
-        
-        function updateKitchenGlow() {
-            const kitCard = document.getElementById('card-kitchen');
-            
-            // При включении основного света - низ светится
-            if (states.kit_light) {
-                const shadow = 'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
-                document.documentElement.style.setProperty('--kit-glow-bottom', shadow);
-                kitCard.style.borderBottom = '1px solid rgba(88, 166, 255, 0.4)';
-            } else {
-                document.documentElement.style.setProperty('--kit-glow-bottom', 'inset 0 0 0 transparent');
-                kitCard.style.borderBottom = '1px solid transparent';
-            }
-            
-            // При включении подсветки рабочей зоны - верх светится
-            if (states.kit_sub) {
-                const shadow = 'inset 0 70px 110px -30px rgba(88, 166, 255, 0.6)';
-                document.documentElement.style.setProperty('--kit-glow-top', shadow);
-                kitCard.style.borderTop = '1px solid rgba(88, 166, 255, 0.7)';
-            } else {
-                document.documentElement.style.setProperty('--kit-glow-top', 'inset 0 0 0 transparent');
-                kitCard.style.borderTop = '1px solid transparent';
-            }
-        }
-        
-        function updateDoorStatus(textId, val, tempId) {
-            const statusTxt = document.getElementById(textId);
-            const tempDisplay = document.getElementById(tempId);
-            const tempDisplayOv = document.getElementById(tempId + '_ov');
-            if(val == "1") {
-                if(statusTxt) { statusTxt.innerText = "ДВЕРИ ОТКРЫТЫ"; statusTxt.style.color = "var(--accent)"; }
-                if(tempDisplay) tempDisplay.classList.add('temp-pulse');
-                if(tempDisplayOv) tempDisplayOv.classList.add('temp-pulse');
-            } else {
-                if(statusTxt) { statusTxt.innerText = "ДВЕРИ ЗАКРЫТЫ"; statusTxt.style.color = "var(--text)"; }
-                if(tempDisplay) tempDisplay.classList.remove('temp-pulse');
-                if(tempDisplayOv) tempDisplayOv.classList.remove('temp-pulse');
-            }
-        }
-        
-        function updateButtonState(id, state) {
-            const btn = document.getElementById(id);
-            if (btn) {
-                if (state) {
-                    btn.classList.add('is-on');
-                } else {
-                    btn.classList.remove('is-on');
-                }
-            }
-        }
-        
-        function updateFanSpeedButtons(speed) {
-            const btn1 = document.getElementById('fan_speed_1');
-            const btn2 = document.getElementById('fan_speed_2');
-            
-            // Убираем класс active у всех
-            btn1.classList.remove('active');
-            btn2.classList.remove('active');
-            
-            // Восстанавливаем стили
-            btn1.style.background = '#30363d';
-            btn1.style.color = '#c9d1d9';
-            btn2.style.background = '#30363d';
-            btn2.style.color = '#c9d1d9';
-            
-            // Устанавливаем активную кнопку
-            if (speed == 1) {
-                btn1.classList.add('active');
-                btn1.style.background = '#58a6ff';
-                btn1.style.color = '#fff';
-            } else if (speed == 2) {
-                btn2.classList.add('active');
-                btn2.style.background = '#58a6ff';
-                btn2.style.color = '#fff';
-            }
-        }
-        
-        function setFanSpeed(speed) {
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: Скорость вытяжки = ' + speed);
-                updateFanSpeedButtons(speed);
-                return;
-            }
-            send('dom/Vityjka1', speed);
-            updateFanSpeedButtons(speed);
-        }
-        
-        function setHallFanSpeed(speed) {
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: Скорость приточки = ' + speed);
-                updateHallFanSpeedButtons(speed);
-                return;
-            }
-            send('dom/Pritok1', speed);
-            updateHallFanSpeedButtons(speed);
-        }
-        
-        function updateHallFanSpeedButtons(speed) {
-            const btn1 = document.getElementById('hall_speed_1');
-            const btn2 = document.getElementById('hall_speed_2');
-            
-            // Убираем класс active у всех
-            btn1.classList.remove('active');
-            btn2.classList.remove('active');
-            
-            // Восстанавливаем стили
-            btn1.style.background = '#30363d';
-            btn1.style.color = '#c9d1d9';
-            btn2.style.background = '#30363d';
-            btn2.style.color = '#c9d1d9';
-            
-            // Устанавливаем активную кнопку
-            if (speed == 1) {
-                btn1.classList.add('active');
-                btn1.style.background = '#58a6ff';
-                btn1.style.color = '#fff';
-            } else if (speed == 2) {
-                btn2.classList.add('active');
-                btn2.style.background = '#58a6ff';
-                btn2.style.color = '#fff';
-            }
-        }
-        
-        function setWaterMode(mode) {
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: Режим водонагревателя = ' + mode);
-                updateWaterModeButtons(mode);
-                return;
-            }
-            send('dom/vod/regim', mode);
-            updateWaterModeButtons(mode);
-        }
-        
-        function updateWaterModeButtons(mode) {
-            const btn1 = document.getElementById('mode_turbo');
-            const btn2 = document.getElementById('mode_normal');
-            const btn3 = document.getElementById('mode_eco');
-            const btn4 = document.getElementById('mode_min');
-            
-            [btn1, btn2, btn3, btn4].forEach(btn => {
-                btn.style.background = '#30363d';
-                btn.style.color = '#c9d1d9';
-            });
-            
-            const buttons = [btn1, btn2, btn3, btn4];
-            if (mode >= 1 && mode <= 4) {
-                buttons[mode - 1].style.background = '#58a6ff';
-                buttons[mode - 1].style.color = '#fff';
-            }
-        }
-        
-        function updateBathroomGlow() {
-            const bathCard = document.getElementById('card-bathroom');
-            
-            // При включении основного света - низ светится
-            if (states.bath_light) {
-                const shadow = 'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
-                document.documentElement.style.setProperty('--bath-glow-bottom', shadow);
-                bathCard.style.borderBottom = '1px solid rgba(88, 166, 255, 0.4)';
-            } else {
-                document.documentElement.style.setProperty('--bath-glow-bottom', 'inset 0 0 0 transparent');
-                bathCard.style.borderBottom = '1px solid transparent';
-            }
-            
-            // При включении душевой - верх светится
-            if (states.bath_dush) {
-                const shadow = 'inset 0 70px 110px -30px rgba(88, 166, 255, 0.6)';
-                document.documentElement.style.setProperty('--bath-glow-top', shadow);
-                bathCard.style.borderTop = '1px solid rgba(88, 166, 255, 0.7)';
-            } else {
-                document.documentElement.style.setProperty('--bath-glow-top', 'inset 0 0 0 transparent');
-                bathCard.style.borderTop = '1px solid transparent';
-            }
-        }
-        
-        function updateWaterStatDisplay() {
-            const btn = document.getElementById('sw_water_stat');
-            const tempContainer = document.getElementById('bath-temp-container');
-            const zadContainer = document.getElementById('bath-zad-container');
-            
-            if (states.water_stat) {
-                // ВКЛЮЧЕНО - чёткие, без размытия
-                if(btn) btn.innerText = 'ВКЛЮЧЕНО';
-                if(btn) btn.style.background = '#238636';
-                if(btn) btn.style.borderColor = '#238636';
-                if(tempContainer) {
-                    tempContainer.style.opacity = '1';
-                    tempContainer.style.filter = 'blur(0px)';
-                }
-                if(zadContainer) {
-                    zadContainer.style.opacity = '1';
-                    zadContainer.style.filter = 'blur(0px)';
-                }
-            } else {
-                // ВЫКЛЮЧЕНО - полупрозрачно и размыто
-                if(btn) btn.innerText = 'ВЫКЛЮЧЕНО';
-                if(btn) btn.style.background = '#30363d';
-                if(btn) btn.style.borderColor = 'var(--border)';
-                if(tempContainer) {
-                    tempContainer.style.opacity = '0.3';
-                    tempContainer.style.filter = 'blur(2px)';
-                }
-                if(zadContainer) {
-                    zadContainer.style.opacity = '0.3';
-                    zadContainer.style.filter = 'blur(2px)';
-                }
-            }
-        }
-        
-        function showRoomsScreen() {
-            document.getElementById('main-screen').style.display = 'none';
-            document.getElementById('tech-screen').style.display = 'none';
-            document.getElementById('rooms-screen').style.display = 'flex';
-        }
-        
-        function showMainScreen() {
-            document.getElementById('rooms-screen').style.display = 'none';
-            document.getElementById('tech-screen').style.display = 'none';
-            document.getElementById('main-screen').style.display = 'flex';
-        }
-        
-        function showTechScreen() {
-            document.getElementById('main-screen').style.display = 'none';
-            document.getElementById('rooms-screen').style.display = 'none';
-            document.getElementById('tech-screen').style.display = 'flex';
-        }
-        
-        // Swipe обработчик для карточки ДОМ
-        let touchStartX = 0;
-        function handleTouchStart(event) {
-            touchStartX = event.changedTouches[0].screenX;
-        }
-        
-        function handleTouchEnd(event) {
-            const touchEndX = event.changedTouches[0].screenX;
-            const swipeDistance = touchStartX - touchEndX;
-            
-            // Если свайп влево более чем на 50px - открыть техэкран
-            if (swipeDistance > 50) {
-                showTechScreen();
-            }
-        }
-        
-        function updateHomeCardAverage() {
-            // Рассчитываем среднюю температуру (Зал + Спальня + Детская) / 3
-            const tHall = parseFloat(document.getElementById('t_hall')?.innerText || 0);
-            const tBed = parseFloat(document.getElementById('t_bed')?.innerText || 0);
-            const tDet = parseFloat(document.getElementById('t_det')?.innerText || 0);
-            const avgTemp = ((tHall + tBed + tDet) / 3).toFixed(1);
-            
-            // Рассчитываем среднюю влажность (Зал + Спальня + Детская) / 3
-            const hHall = parseFloat(document.getElementById('h_hall')?.innerText || 0);
-            const hBed = parseFloat(document.getElementById('h_bed')?.innerText || 0);
-            const hDet = parseFloat(document.getElementById('h_det')?.innerText || 0);
-            const avgHum = Math.round((hHall + hBed + hDet) / 3);
-            
-            if(document.getElementById('t_home')) document.getElementById('t_home').innerText = avgTemp;
-            if(document.getElementById('h_home')) document.getElementById('h_home').innerText = avgHum;
-        }
-        
-        function updateHomeCardGlow() {
-            const homeCard = document.getElementById('card-home');
-            
-            // Проверяем если включен хоть один выключатель в доме
-            if (states.sv1 || states.sv2 || states.svbed || states.svdet || states.kit_light || states.bath_light) {
-                const shadow = 'inset 0 -60px 100px -20px rgba(88, 166, 255, 0.5), inset 40px 0 70px -30px rgba(88, 166, 255, 0.3), inset -40px 0 70px -30px rgba(88, 166, 255, 0.3)';
-                document.documentElement.style.setProperty('--home-glow-bottom', shadow);
-                homeCard.style.borderBottom = '1px solid rgba(88, 166, 255, 0.4)';
-            } else {
-                document.documentElement.style.setProperty('--home-glow-bottom', 'inset 0 0 0 transparent');
-                homeCard.style.borderBottom = '1px solid transparent';
-            }
-        }
-        
-        function changeDetTargetTemp(delta) {
-            let newTemp = parseFloat(states.det_zad) + delta;
-            // Ограничиваем диапазон разумными значениями
-            if (newTemp < 15) newTemp = 15;
-            if (newTemp > 30) newTemp = 30;
-            
-            if (isDemoMode) {
-                console.log('📱 ДЕМО-РЕЖИМ: Целевая температура детской = ' + newTemp.toFixed(1));
-                states.det_zad = newTemp;
-                if(document.getElementById('l_det_zad')) document.getElementById('l_det_zad').innerText = newTemp.toFixed(1);
-                return;
-            }
-            send('dom/tempMotzad', newTemp.toFixed(1));
-            states.det_zad = newTemp;
-            if(document.getElementById('l_det_zad')) document.getElementById('l_det_zad').innerText = newTemp.toFixed(1);
-        }
-        
-        function openOverlay(id) { document.getElementById('app-content').classList.add('blurred'); const ov = document.getElementById(id); ov.style.display = 'flex'; setTimeout(() => ov.classList.add('active'), 10); }
-        function closeOverlay() { document.getElementById('app-content').classList.remove('blurred'); document.querySelectorAll('.overlay').forEach(ov => { ov.classList.remove('active'); setTimeout(() => ov.style.display = 'none', 500); }); }
-        
-        function startDemoSimulation() {
-            // Вымышленные начальные значения
-            const demoData = {
-                't_water': 42.5, 'l_sp_dash': 55, 'pwr_val': '35%',
-                't_hall': 22.4, 'h_hall': 45,
-                't_bed': 21.8, 'h_bed': 48,
-                't_det': 23.1, 'h_det': 42,
-                't_kit': 24.2, 'h_kit': 52, 't_kit_ov': 24.2, 'h_kit_ov': 52,
-                't_bath': 23.5, 'h_bath': 65, 't_bath_ov': 23.5, 'h_bath_ov': 65
-            };
-            
-            // Установим начальные значения
-            for (let id in demoData) {
-                const el = document.getElementById(id);
-                if (el) el.innerText = demoData[id];
-            }
-            
-            // Обновляем данные каждые 3 секунды (имитируем датчики)
-            setInterval(() => {
-                if (!isDemoMode) return;
-                
-                // Случайные изменения температур (симуляция реальных датчиков)
-                document.getElementById('t_water').innerText = (40 + Math.random() * 5).toFixed(1);
-                document.getElementById('t_hall').innerText = (21 + Math.random() * 4).toFixed(1);
-                document.getElementById('h_hall').innerText = Math.floor(40 + Math.random() * 20);
-                
-                document.getElementById('t_bed').innerText = (20 + Math.random() * 4).toFixed(1);
-                document.getElementById('h_bed').innerText = Math.floor(45 + Math.random() * 15);
-                
-                document.getElementById('t_det').innerText = (22 + Math.random() * 4).toFixed(1);
-                document.getElementById('h_det').innerText = Math.floor(35 + Math.random() * 20);
-                
-                document.getElementById('t_kit').innerText = (23 + Math.random() * 5).toFixed(1);
-                document.getElementById('h_kit').innerText = Math.floor(48 + Math.random() * 20);
-                document.getElementById('t_kit_ov').innerText = (23 + Math.random() * 5).toFixed(1);
-                document.getElementById('h_kit_ov').innerText = Math.floor(48 + Math.random() * 20);
-                
-                document.getElementById('t_bath').innerText = (22 + Math.random() * 5).toFixed(1);
-                document.getElementById('h_bath').innerText = Math.floor(60 + Math.random() * 25);
-                document.getElementById('t_bath_ov').innerText = (22 + Math.random() * 5).toFixed(1);
-                document.getElementById('h_bath_ov').innerText = Math.floor(60 + Math.random() * 25);
-                
-                // Случайная мощность котла
-                document.getElementById('pwr_val').innerText = Math.floor(Math.random() * 100) + '%';
-            }, 3000);
-        }
-        
-        function updateClock() { 
-            const now = new Date(); 
-            document.getElementById('clock-time').innerText = now.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}); 
-            document.getElementById('clock-date').innerText = now.toLocaleDateString('ru-RU', {weekday:'long', day:'numeric', month:'long'}); 
-        }
-        setInterval(updateClock, 1000); 
-        updateClock();
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW error', err));
-            });
-        }
-    </script>
+    <!-- Этап 1: Скрипты вынесены в отдельные файлы -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
