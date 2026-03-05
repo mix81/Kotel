@@ -27,14 +27,15 @@
 
     <!-- ==================== КОНТЕНТ ПРИЛОЖЕНИЯ ==================== -->
     <div id="app-content">
-        <div class="clock-container">
+        <!-- КАРТОЧКА ЧАСОВ (фиксированная, по центру вверху) -->
+        <div id="clock-card" class="clock-card">
             <div id="clock-time">00:00</div>
             <div id="clock-date">...</div>
             <div id="demo-badge">ДЕМО-РЕЖИМ</div>
         </div>
 
         <!-- ========== ГЛАВНАЯ СТРАНИЦА ========== -->
-        <div id="main-screen" class="cards-grid" style="flex-direction: column; gap: 30px; max-width: 800px;">
+        <div id="main-screen" class="cards-grid" style="flex-direction: column; gap: 30px; max-width: 800px; padding-top: 110px;">
             <div id="cards-container" style="display: flex; gap: 30px; width: 100%; max-width: 800px; flex-wrap: wrap;">
 
                 <!-- КАРТОЧКА ДОМ -->
@@ -72,11 +73,9 @@
         </div>
 
         <!-- ========== ЭКРАН КОМНАТ ========== -->
-        <div id="rooms-screen" style="display: none; width: 100%;">
-            <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
-                <button class="back-btn" onclick="showMainScreen()">✕ НАЗАД</button>
-            </div>
-            <div class="cards-grid">
+        <div id="rooms-screen" class="fullscreen-panel">
+            <div class="fullscreen-inner">
+                <div class="cards-grid">
 
                 <!-- ЗАЛ -->
                 <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
@@ -143,15 +142,14 @@
                     </div>
                 </div>
 
+                </div>
+                <button class="close-btn" style="margin: 30px 0;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
             </div>
         </div>
-
         <!-- ========== ТЕХНИЧЕСКИЙ ЭКРАН ========== -->
-        <div id="tech-screen" style="display: none; width: 100%;">
-            <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
-                <button class="back-btn" onclick="showMainScreen()">✕ НАЗАД</button>
-            </div>
-            <div class="cards-grid">
+        <div id="tech-screen" class="fullscreen-panel">
+            <div class="fullscreen-inner">
+                <div class="cards-grid">
 
                 <!-- КОТЕЛ -->
                 <div class="card" onclick="openOverlay('boiler-overlay')">
@@ -204,6 +202,9 @@
                     </div>
                 </div>
 
+                </div>
+
+                <button class="close-btn" style="margin: 30px 0;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
             </div>
         </div>
     </div>
@@ -610,18 +611,15 @@
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <h3 class="col-title">УЛИЦА</h3>
-                <div style="text-align: center; margin-bottom: 25px; margin-top: 15px;">
-                    <div style="font-size: 12px; color: #8b949e; margin-bottom: 5px;">ТЕМПЕРАТУРА</div>
-                    <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1;"><span id="t_street_ov">--</span>°</div>
-                </div>
-                <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 25px; justify-content: center;">
-                    <div style="width: 1px; background: var(--border); height: 80px;"></div>
-                    <div style="text-align: left;">
-                        <div style="font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px;">Влажность</div>
-                        <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1; margin-bottom: 15px;"><span id="h_street_ov">--%</span></div>
-                        <div style="font-size: 8px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px;">Давление</div>
-                        <div style="font-size: 28px; font-weight: 200; color: #a5d6ff; line-height: 1;"><span id="p_street_ov">--</span></div>
+                <div class="temp-row" style="margin: 15px 0 20px 0; justify-content: flex-start;">
+                    <div class="val-display"><span id="t_street_ov">--</span><span class="deg">°</span></div>
+                    <div class="target-box">
+                        <div class="target-label">Влажность</div>
+                        <div class="target-val"><span id="h_street_ov">--</span>%</div>
                     </div>
+                </div>
+                <div style="font-size: 12px; color: #c9d1d9; text-align: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border);">
+                    Давление: <span id="p_street_ov" style="color: #a5d6ff; font-weight: bold;">--</span> мм рт.ст.
                 </div>
             </div>
             <div class="column-divider"></div>

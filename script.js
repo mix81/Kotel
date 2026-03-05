@@ -123,9 +123,9 @@ const topicRouter = {
     'heater/kd/state':        v => setVal('i_kd', v),
 
     // --- УЛИЦА ---
-    'dom/tempUlica': v => { setText('t_out_big', v); setText('t_street', v); },
-    'dom/vlagUlica': v => setText('h_street', v),
-    'dom/davlUlica': v => setText('p_street', v),
+    'dom/tempUlica': v => { setText('t_out_big', v); setText('t_street', v); setText('t_street_ov', v); },
+    'dom/vlagUlica': v => { setText('h_street', v); setText('h_street_ov', v); },
+    'dom/davlUlica': v => { setText('p_street', v); setText('p_street_ov', v); },
     'dom/svUlica':   v => { states.street_light = +v; updateButtonState('sw_street_light', +v); updateStreetGlow(); },
     'dom/svMangal':  v => { states.street_bbq = +v;  updateButtonState('sw_street_bbq', +v);   updateStreetGlow(); },
 
@@ -295,22 +295,33 @@ function checkPass() {
 }
 
 // =====================================================================
-// НАВИГАЦИЯ ЭКРАНОВ
+// НАВИГАЦИЯ ЭКРАНОВ (анимация как у оверлеев)
 // =====================================================================
-function showRoomsScreen() {
-    DOM['main-screen'].style.display = 'none';
-    DOM['tech-screen'].style.display = 'none';
-    DOM['rooms-screen'].style.display = 'flex';
+function _showPanel(panelId) {
+    ['rooms-screen', 'tech-screen'].forEach(id => {
+        const el = DOM[id];
+        if (!el) return;
+        if (id === panelId) {
+            el.style.display = 'flex';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => { el.classList.add('panel-active'); });
+            });
+        } else if (el.classList.contains('panel-active')) {
+            el.classList.remove('panel-active');
+            setTimeout(() => { el.style.display = 'none'; }, 400);
+        }
+    });
 }
+
+function showRoomsScreen() { _showPanel('rooms-screen'); }
+function showTechScreen()  { _showPanel('tech-screen');  }
 function showMainScreen() {
-    DOM['rooms-screen'].style.display = 'none';
-    DOM['tech-screen'].style.display = 'none';
-    DOM['main-screen'].style.display = 'flex';
-}
-function showTechScreen() {
-    DOM['main-screen'].style.display = 'none';
-    DOM['rooms-screen'].style.display = 'none';
-    DOM['tech-screen'].style.display = 'flex';
+    ['rooms-screen', 'tech-screen'].forEach(id => {
+        const el = DOM[id];
+        if (!el || !el.classList.contains('panel-active')) return;
+        el.classList.remove('panel-active');
+        setTimeout(() => { el.style.display = 'none'; }, 400);
+    });
 }
 
 // =====================================================================

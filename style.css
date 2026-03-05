@@ -37,6 +37,78 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     100% { box-shadow: 0 0 5px rgba(218, 54, 51, 0.3); color: #ff6b6b; }
 }
 
+/* ===================== ЧАСЫ (фиксированная карточка по центру) ===================== */
+.clock-card {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    background: rgba(22, 27, 34, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    border-radius: 16px;
+    padding: 10px 22px 8px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+#clock-time {
+    font-size: 52px;
+    font-weight: 200;
+    color: transparent;
+    line-height: 1;
+    letter-spacing: -1px;
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 20px rgba(88, 166, 255, 0.4), 0 0 40px rgba(88, 166, 255, 0.15);
+}
+#clock-date {
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+/* ===================== FULLSCREEN PANELS (экраны комнат и техники — как оверлеи) ===================== */
+.fullscreen-panel {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(13, 17, 23, 0.45);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    z-index: 4000;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    overflow-y: auto;
+    padding: 100px 15px 30px;
+}
+.fullscreen-panel.panel-active {
+    display: flex;
+    opacity: 1;
+}
+.fullscreen-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    filter: blur(15px);
+    opacity: 0;
+    transform: scale(0.97);
+    transition: filter 0.45s ease, opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fullscreen-panel.panel-active .fullscreen-inner {
+    filter: blur(0px);
+    opacity: 1;
+    transform: scale(1);
+}
+
 /* ===================== УТИЛИТЫ СОСТОЯНИЙ ===================== */
 /* Этап 2: CSS-классы вместо inline JS стилей */
 .temp-pulse { animation: temp-alert-pulse 1.5s infinite alternate ease-in-out; color: var(--ice-blue) !important; }
@@ -112,12 +184,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .enter-btn { width: 100%; padding: 14px; background: var(--accent); border: none; color: #fff; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
 /* ===================== КОНТЕНТ ПРИЛОЖЕНИЯ ===================== */
-#app-content { display: none; flex-direction: column; align-items: center; padding: 15px; transition: filter 0.5s ease; }
+#app-content { display: none; flex-direction: column; align-items: center; padding: 15px; transition: filter 0.5s ease; gap: 15px; }
 #app-content.blurred { filter: blur(5px); }
-
-.clock-container { text-align: center; padding: 20px 0 30px; }
-#clock-time { font-size: 60px; font-weight: 200; color: #fff; line-height: 1; }
-#clock-date { font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-top: 8px; }
 
 #demo-badge {
     display: none;
