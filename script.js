@@ -41,7 +41,7 @@ function initDOMCache() {
         'sw_svdet','m_det_day','m_det_night','r_det_dim',
         'sw_svdet_rgb','cp_det_rgb','r_det_br','l_det_zad',
         // Кухня
-        't_kit','h_kit','t_kit_ov','h_kit_ov',
+        't_kit','h_kit','t_kit_ov','h_kit_ov','t_chay','t_chay_ov',
         'window-status-text-kit','door-status-text-kit','card-kitchen',
         'sw_kit_light','sw_kit_sub','sw_kit_night',
         'sw_kit_fan','fan_speed_1','fan_speed_2',
@@ -54,7 +54,7 @@ function initDOMCache() {
         'power_watts','power_watts_ov','voltage_volts','voltage_volts_ov',
         'current_amps','current_amps_ov','power_boiler','power_water_heater',
         // Охрана
-        'security_lock_icon','security_windows_status','security_doors_status',
+        'card_shield_svg','card-security',
         'sensor_hall_window','sensor_bed_window','sensor_kids_window',
         'sensor_kitchen_window','sensor_kitchen_door','sensor_front_door',
         // Дом-карточка
@@ -70,7 +70,7 @@ function initDOMCache() {
 // =====================================================================
 // ЭТАП 4: ХЕЛПЕР-ФУНКЦИИ (маленькие «черные ящики»)
 // =====================================================================
-const setText  = (id, val) => { if (DOM[id]) DOM[id].innerText = val; };
+const setText  = (id, val) => { const el = DOM[id] || document.getElementById(id); if (el) el.innerText = val; };
 const setVal   = (id, val) => { if (DOM[id]) DOM[id].value = val; };
 const addClass = (id, cls) => { if (DOM[id]) DOM[id].classList.add(cls); };
 const remClass = (id, cls) => { if (DOM[id]) DOM[id].classList.remove(cls); };
@@ -170,7 +170,6 @@ const topicRouter = {
     'dom/tempMot1':       v => { setText('t_det', v); setText('t_det_ov', v); updateHomeCardAverage(); },
     'dom/vlagMot':        v => { setText('h_det', v); setText('h_det_ov', v); updateHomeCardAverage(); },
     'dom/tempMotzad':     v => { states.det_zad = parseFloat(v); setText('l_det_zad', parseFloat(v).toFixed(1)); },
-    'dom/oknoDetskay':    v => updateWindowStatus('window-status-text-det', v, 't_det'),
     'dom/svDetLamp/st':   v => { updateItem('svdet', v); updateHomeCardGlow(); },
     'dom/svDetLamp/dim':  v => setVal('r_det_dim', v),
     'dom/svDetLamp/noc':  v => {
@@ -191,6 +190,7 @@ const topicRouter = {
     // --- КУХНЯ ---
     'dom/tempZal_kit': v => { setText('t_kit', v); setText('t_kit_ov', v); },
     'dom/vlagZal_kit': v => { setText('h_kit', v); setText('h_kit_ov', v); },
+    'dom/tempChay':    v => { setText('t_chay', v); setText('t_chay_ov', v); },
     'dom/svKuh1':      v => { states.kit_light = +v; updateButtonState('sw_kit_light', +v); updateKitchenGlow(); updateHomeCardGlow(); },
     'dom/svKuh2':      v => { states.kit_sub   = +v; updateButtonState('sw_kit_sub',   +v); updateKitchenGlow(); updateHomeCardGlow(); },
     'dom/svKuh3':      v => { states.kit_night = +v; updateButtonState('sw_kit_night', +v); updateHomeCardGlow(); },
@@ -219,11 +219,11 @@ const topicRouter = {
     'dom/mojnost/kot':      v => setText('power_boiler', v),
     'dom/mojnost/vodogrey': v => setText('power_water_heater', v),
 
-    // --- ДАТЧИКИ ОХРАНЫ ---
-    'dom/oknoZal':      v => updateSecuritySensor('sensor_hall_window', v),
-    'dom/oknoSpalny':   v => updateSecuritySensor('sensor_bed_window', v),
-    'dom/oknoDetskay':  v => updateSecuritySensor('sensor_kids_window', v),
-    'dom/ohrana':       v => { states.security_mode = +v; updateSecurityDisplay(); updateSecurityWindowsStatus(); updateSecurityDoorsStatus(); },
+    // --- ДАТЧИКИ ОХРАНЫ + ОКНА/ДВЕРИ (объединено) ---
+    'dom/oknoZal':     v => { updateWindowStatus('window-status-text', v, 't_hall'); updateSecuritySensor('sensor_hall_window', v); },
+    'dom/oknoSpalny':  v => { updateWindowStatus('window-status-text-bed', v, 't_bed'); updateSecuritySensor('sensor_bed_window', v); },
+    'dom/oknoDetskay': v => { updateWindowStatus('window-status-text-det', v, 't_det'); updateSecuritySensor('sensor_kids_window', v); },
+    'dom/ohrana':      v => { states.security_mode = +v; updateSecurityDisplay(); },
 };
 
 // =====================================================================
@@ -295,32 +295,32 @@ function checkPass() {
 }
 
 // =====================================================================
-// НАВИГАЦИЯ ЭКРАНОВ (анимация как у оверлеев)
+// НАВИГАЦИЯ ЭКРАНОВ
 // =====================================================================
 function _showPanel(panelId) {
     ['rooms-screen', 'tech-screen'].forEach(id => {
         const el = DOM[id];
         if (!el) return;
-        if (id === panelId) {
-            el.style.display = 'flex';
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => { el.classList.add('panel-active'); });
-            });
-        } else if (el.classList.contains('panel-active')) {
+        if (id !== panelId && el.style.display !== 'none') {
             el.classList.remove('panel-active');
-            setTimeout(() => { el.style.display = 'none'; }, 400);
+            setTimeout(() => { el.style.display = 'none'; }, 450);
         }
     });
+    const panel = DOM[panelId];
+    if (!panel) return;
+    panel.style.display = 'flex';
+    setTimeout(() => panel.classList.add('panel-active'), 10);
 }
 
-function showRoomsScreen() { _showPanel('rooms-screen'); }
-function showTechScreen()  { _showPanel('tech-screen');  }
+function showRoomsScreen() { DOM['app-content'].classList.add('blurred'); _showPanel('rooms-screen'); }
+function showTechScreen()  { DOM['app-content'].classList.add('blurred'); _showPanel('tech-screen');  }
 function showMainScreen() {
+    DOM['app-content'].classList.remove('blurred');
     ['rooms-screen', 'tech-screen'].forEach(id => {
         const el = DOM[id];
-        if (!el || !el.classList.contains('panel-active')) return;
+        if (!el || el.style.display === 'none') return;
         el.classList.remove('panel-active');
-        setTimeout(() => { el.style.display = 'none'; }, 400);
+        setTimeout(() => { el.style.display = 'none'; }, 450);
     });
 }
 
@@ -598,31 +598,72 @@ function updateDoorStatus(textId, val, tempId) {
 // =====================================================================
 // ОХРАНА
 // =====================================================================
+
+const sensorBlockMap = {
+    'sensor_hall_window':    'sensor_block_hall',
+    'sensor_bed_window':     'sensor_block_bed',
+    'sensor_kids_window':    'sensor_block_kids',
+    'sensor_kitchen_window': 'sensor_block_kitchen_win',
+    'sensor_kitchen_door':   'sensor_block_kitchen_door',
+    'sensor_front_door':     'sensor_block_front',
+};
+
 function toggleSecurityMode() {
     const newMode = states.security_mode ? 0 : 1;
+    states.security_mode = newMode;
     send('dom/ohrana', newMode);
+    updateSecurityDisplay();
 }
 
 function updateSecurityDisplay() {
-    if (DOM['security_lock_icon']) DOM['security_lock_icon'].innerText = states.security_mode ? '🔓' : '🔒';
+    const armed = !!states.security_mode;
+
+    // Щит на карточке охраны
+    const shieldSvg = document.getElementById('card_shield_svg');
+    if (shieldSvg) {
+        const paths = shieldSvg.querySelectorAll('path');
+        const color = armed ? '#238636' : '#58a6ff';
+        const glow  = armed
+            ? 'drop-shadow(0 0 20px rgba(35,134,54,0.8)) drop-shadow(0 0 40px rgba(35,134,54,0.4))'
+            : 'drop-shadow(0 0 18px rgba(88,166,255,0.5))';
+        paths.forEach(p => {
+            p.style.stroke = color;
+            if (p.getAttribute('fill') && p.getAttribute('fill') !== 'none') {
+                p.style.fill = armed ? 'rgba(35,134,54,0.12)' : 'rgba(88,166,255,0.08)';
+            }
+        });
+        // Галочка
+        const check = document.getElementById('shield_check');
+        if (check) {
+            check.style.stroke  = color;
+            check.style.opacity = armed ? '1' : '0';
+        }
+        shieldSvg.style.filter = glow;
+    }
+
+    // Кнопка в оверлее
+    const btn = document.getElementById('sw_security');
+    if (btn) {
+        btn.innerText      = armed ? 'НА ОХРАНЕ' : 'СНЯТА С ОХРАНЫ';
+        btn.style.background  = armed ? 'var(--on)'    : '#30363d';
+        btn.style.borderColor = armed ? 'var(--on)'    : 'var(--border)';
+        btn.style.color       = armed ? '#fff'          : '#c9d1d9';
+        btn.style.boxShadow   = armed ? '0 0 15px rgba(35,134,54,0.5)' : 'none';
+    }
 }
 
-function updateSecurityWindowsStatus() {
-    // Упрощённая логика — можно расширить по реальным данным датчиков
-    if (DOM['security_windows_status']) DOM['security_windows_status'].innerText = 'Все окна закрыты';
-}
-
-function updateSecurityDoorsStatus() {
-    if (DOM['security_doors_status']) DOM['security_doors_status'].innerText = 'Двери закрыты';
-}
-
-function updateSecuritySensor(elementId, value) {
-    const elem = DOM[elementId] || document.getElementById(elementId);
-    if (!elem) return;
+function updateSecuritySensor(statusElemId, value) {
+    const statusEl = document.getElementById(statusElemId);
     const open = parseInt(value) === 1;
-    const label = elementId.includes('window') ? 'Окно: ' : (elementId.includes('door') ? 'Двери: ' : 'Дверь: ');
-    const color = open ? '#ff6b6b' : '#58a6ff';
-    elem.innerHTML = `<span style="color:${color}">${label}${open ? 'ОТКРЫТО' : 'ЗАКРЫТО'}</span>`;
+
+    if (statusEl) {
+        statusEl.innerText   = open ? 'ОТКРЫТО' : 'ЗАКРЫТО';
+        statusEl.className   = 'sensor-status ' + (open ? 'open-st' : 'closed');
+    }
+
+    const blockId = sensorBlockMap[statusElemId];
+    const block   = document.getElementById(blockId);
+    if (block) block.classList.toggle('open', open);
 }
 
 // =====================================================================

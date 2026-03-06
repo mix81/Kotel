@@ -72,41 +72,58 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     opacity: 0.8;
 }
 
-/* ===================== FULLSCREEN PANELS (экраны комнат и техники — как оверлеи) ===================== */
+/* ===================== FULLSCREEN PANELS ===================== */
 .fullscreen-panel {
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(13, 17, 23, 0.45);
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
     z-index: 4000;
+    overflow-y: auto;
+    padding: 20px 15px 40px;
+}
+/* Фоновое затемнение — отдельный псевдоэлемент, не затрагивает контент */
+.fullscreen-panel::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(13, 17, 23, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     opacity: 0;
     transition: opacity 0.4s ease;
-    overflow-y: auto;
-    padding: 100px 15px 30px;
+    z-index: -1;
+    pointer-events: none;
 }
-.fullscreen-panel.panel-active {
-    display: flex;
+.fullscreen-panel.panel-active::before {
     opacity: 1;
 }
-.fullscreen-inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    max-width: 1200px;
-    filter: blur(15px);
+/* Карточки внутри — никогда не размываются */
+.fullscreen-panel .cards-grid {
     opacity: 0;
-    transform: scale(0.97);
-    transition: filter 0.45s ease, opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    transform: translateY(20px) scale(0.98);
+    transition: opacity 0.45s ease 0.05s, transform 0.45s cubic-bezier(0.22,1,0.36,1) 0.05s;
+    position: relative;
+    z-index: 1;
 }
-.fullscreen-panel.panel-active .fullscreen-inner {
-    filter: blur(0px);
+.fullscreen-panel.panel-active .cards-grid {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
+}
+.fullscreen-panel .close-btn {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
+    position: relative;
+    z-index: 1;
+}
+.fullscreen-panel.panel-active .close-btn {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* ===================== УТИЛИТЫ СОСТОЯНИЙ ===================== */
@@ -246,6 +263,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .toggle-btn.is-on { background: var(--on); }
 .toggle-btn.is-on::before { left: 27px; }
 
+/* label-inline допускает перенос строки */
+.label-inline { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; line-height: 1.4; }
+
+/* Щит охраны на карточке */
+#card_shield_svg path { transition: stroke 0.5s ease, fill 0.5s ease; }
+#card_shield_svg { transition: filter 0.5s ease; }
+
 input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; height: 6px; }
 .color-selector { flex: 1; background: #0d1117; border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 8px; font-size: 12px; outline: none; cursor: pointer; }
 .pid-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
@@ -254,7 +278,75 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
 .close-btn { margin-top: 30px; padding: 18px 80px; background: var(--accent); border: none; color: #fff; border-radius: 15px; font-weight: bold; cursor: pointer; }
 .locked-ui { opacity: 0.25; pointer-events: none; filter: grayscale(1) blur(1px); }
 
-/* ===================== КНОПКА НАЗАД ===================== */
+/* ===================== ОХРАНА — МАТРИЦА ДАТЧИКОВ ===================== */
+.sensor-block {
+    background: rgba(88, 166, 255, 0.05);
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    border-radius: 12px;
+    padding: 10px 8px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    position: relative;
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    min-height: 85px;
+}
+.sensor-block.open {
+    background: rgba(218, 54, 51, 0.1);
+    border-color: rgba(218, 54, 51, 0.55);
+    box-shadow: inset 0 0 25px rgba(218,54,51,0.12),
+                0 0 15px rgba(218,54,51,0.2);
+}
+
+/* SVG иконки внутри ячейки */
+.sensor-svg-icon {
+    width: 20px; height: 20px;
+    color: var(--accent);
+    stroke: currentColor;
+    transition: color 0.3s ease;
+    margin-bottom: 2px;
+    flex-shrink: 0;
+}
+.sensor-block.open .sensor-svg-icon { color: var(--off); }
+
+.sensor-name {
+    font-size: 8.5px;
+    color: #8b949e;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    line-height: 1.2;
+}
+.sensor-status {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+    transition: color 0.3s ease;
+}
+.sensor-status.closed { color: var(--accent); }
+.sensor-status.open-st {
+    color: var(--off);
+    text-shadow: 0 0 8px rgba(218,54,51,0.6);
+}
+
+/* Щит в правом нижнем углу */
+.sensor-shield-svg {
+    position: absolute;
+    bottom: 7px; right: 8px;
+    width: 14px; height: 14px;
+    color: var(--accent);
+    stroke: currentColor;
+    opacity: 0.35;
+    transition: color 0.3s, opacity 0.3s;
+}
+.sensor-block.open .sensor-shield-svg {
+    color: var(--off);
+    opacity: 0.7;
+}
+
+
 .back-btn {
     width: 180px; height: 35px; border-radius: 8px;
     background: #30363d; border: 2px solid #58a6ff; color: #58a6ff;

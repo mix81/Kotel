@@ -74,8 +74,7 @@
 
         <!-- ========== ЭКРАН КОМНАТ ========== -->
         <div id="rooms-screen" class="fullscreen-panel">
-            <div class="fullscreen-inner">
-                <div class="cards-grid">
+            <div class="cards-grid">
 
                 <!-- ЗАЛ -->
                 <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
@@ -121,13 +120,22 @@
                 <!-- КУХНЯ -->
                 <div class="card" id="card-kitchen" onclick="openOverlay('kitchen-overlay')">
                     <h3>Кухня</h3>
-                    <div class="temp-row" style="margin-top: 25px;">
+                    <div class="temp-row" style="margin-top: 10px; align-items: center;">
                         <div class="val-display"><span id="t_kit">--</span><span class="deg">°</span></div>
-                        <div class="target-box">
-                            <div class="target-label">Влажность</div>
-                            <div class="target-val"><span id="h_kit">--</span>%</div>
+                        <div style="margin-left:auto; opacity:0.8;">
+                            <svg viewBox="0 0 64 64" style="width:54px;height:54px;" fill="none">
+                                <path d="M22 13 Q32 9 42 13 L41 17 Q32 14 23 17 Z" stroke="#58a6ff" stroke-width="1.8" stroke-linejoin="round" fill="rgba(88,166,255,0.06)"/>
+                                <rect x="29" y="9" width="6" height="4" rx="2" stroke="#58a6ff" stroke-width="1.5" fill="rgba(88,166,255,0.1)"/>
+                                <path d="M21 17 Q13 18 12 26 Q11 36 14 41 Q17 46 32 47 Q47 46 50 41 Q53 36 52 26 Q51 18 43 17 Z" stroke="#58a6ff" stroke-width="2" stroke-linejoin="round" fill="rgba(88,166,255,0.05)"/>
+                                <path d="M12 26 Q6 25 5 20 L9 19 Q10 22 13 23" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="rgba(88,166,255,0.05)"/>
+                                <path d="M50 22 Q60 22 60 32 Q60 42 50 42" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                                <path d="M50 26 Q56 26 56 32 Q56 38 50 38" stroke="#58a6ff" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.4"/>
+                                <path d="M16 47 Q32 50 48 47 L50 51 Q32 54 14 51 Z" stroke="#58a6ff" stroke-width="1.8" stroke-linejoin="round" fill="rgba(88,166,255,0.08)"/>
+                                <rect x="28" y="51" width="8" height="2.5" rx="1.25" fill="#58a6ff" opacity="0.6"/>
+                            </svg>
                         </div>
                     </div>
+                    <div style="font-size:10px; color:#8b949e; text-align:center; margin-top:4px; letter-spacing:1px;">ЧАЙНИК: <span id="t_chay" style="color:var(--accent);">--</span>°</div>
                 </div>
 
                 <!-- ВАННАЯ -->
@@ -144,12 +152,10 @@
 
                 </div>
                 <button class="close-btn" style="margin: 30px 0;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
-            </div>
         </div>
         <!-- ========== ТЕХНИЧЕСКИЙ ЭКРАН ========== -->
         <div id="tech-screen" class="fullscreen-panel">
-            <div class="fullscreen-inner">
-                <div class="cards-grid">
+            <div class="cards-grid">
 
                 <!-- КОТЕЛ -->
                 <div class="card" onclick="openOverlay('boiler-overlay')">
@@ -194,18 +200,22 @@
                 </div>
 
                 <!-- ОХРАНА -->
-                <div class="card" onclick="openOverlay('security-overlay')">
+                <div class="card" id="card-security" onclick="openOverlay('security-overlay')" style="position:relative; overflow:hidden;">
                     <h3>Охрана</h3>
-                    <div style="text-align: center; margin-top: 50px;">
-                        <div style="font-size: 14px; color: #8b949e;">Статус датчиков</div>
-                        <div style="font-size: 28px; margin-top: 15px;">🔒</div>
+                    <div style="display:flex; justify-content:center; align-items:center; flex:1; margin-top:10px;">
+                        <svg id="card_shield_svg" viewBox="0 0 100 115" style="width:110px; height:110px; transition: all 0.5s ease; filter: drop-shadow(0 0 18px rgba(88,166,255,0.5));">
+                            <path d="M50 5 L90 20 L90 55 C90 80 72 100 50 110 C28 100 10 80 10 55 L10 20 Z"
+                                  fill="rgba(88,166,255,0.08)" stroke="#58a6ff" stroke-width="2.5"/>
+                            <path d="M50 18 L78 29 L78 55 C78 73 66 89 50 97 C34 89 22 73 22 55 L22 29 Z"
+                                  fill="rgba(88,166,255,0.05)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+                            <path id="shield_check" d="M35 55 L46 66 L66 44" stroke="#58a6ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0"/>
+                        </svg>
                     </div>
                 </div>
 
                 </div>
 
                 <button class="close-btn" style="margin: 30px 0;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
-            </div>
         </div>
     </div>
 
@@ -423,16 +433,25 @@
     <!-- ==================== ОВЕРЛЕЙ КУХНИ ==================== -->
     <div id="kitchen-overlay" class="overlay">
         <div class="unified-card">
-            <div class="column" style="justify-content: center;">
-                <h3 class="col-title">СОСТОЯНИЕ</h3>
-                <div class="temp-row" style="margin: 0; justify-content: flex-start;">
+            <div class="column" style="justify-content: flex-start;">
+                <div class="temp-row" style="margin: 0 0 10px 0; justify-content: flex-start;">
                     <div class="val-display"><span id="t_kit_ov">--</span><span class="deg">°</span></div>
-                    <div class="target-box">
-                        <div class="target-label">Влажность</div>
-                        <div class="target-val"><span id="h_kit_ov">--</span>%</div>
+                    <div style="margin-left: 15px; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                        <svg viewBox="0 0 64 64" style="width:44px;height:44px;" fill="none">
+                            <path d="M22 13 Q32 9 42 13 L41 17 Q32 14 23 17 Z" stroke="#58a6ff" stroke-width="1.8" stroke-linejoin="round" fill="rgba(88,166,255,0.06)"/>
+                            <rect x="29" y="9" width="6" height="4" rx="2" stroke="#58a6ff" stroke-width="1.5" fill="rgba(88,166,255,0.1)"/>
+                            <path d="M21 17 Q13 18 12 26 Q11 36 14 41 Q17 46 32 47 Q47 46 50 41 Q53 36 52 26 Q51 18 43 17 Z" stroke="#58a6ff" stroke-width="2" stroke-linejoin="round" fill="rgba(88,166,255,0.05)"/>
+                            <path d="M12 26 Q6 25 5 20 L9 19 Q10 22 13 23" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="rgba(88,166,255,0.05)"/>
+                            <path d="M50 22 Q60 22 60 32 Q60 42 50 42" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                            <path d="M50 26 Q56 26 56 32 Q56 38 50 38" stroke="#58a6ff" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.4"/>
+                            <path d="M16 47 Q32 50 48 47 L50 51 Q32 54 14 51 Z" stroke="#58a6ff" stroke-width="1.8" stroke-linejoin="round" fill="rgba(88,166,255,0.08)"/>
+                            <rect x="28" y="51" width="8" height="2.5" rx="1.25" fill="#58a6ff" opacity="0.6"/>
+                        </svg>
+                        <div style="font-size:9px; color:#8b949e; letter-spacing:1px;">ЧАЙНИК</div>
+                        <div style="font-size:22px; font-weight:200; color:var(--accent);"><span id="t_chay_ov">--</span>°</div>
                     </div>
                 </div>
-                <div id="window-status-text-kit" class="status-row-box" style="margin-top: 15px;">ОКНО ЗАКРЫТО</div>
+                <div id="window-status-text-kit" class="status-row-box" style="margin-top: 8px;">ОКНО ЗАКРЫТО</div>
                 <div id="door-status-text-kit"   class="status-row-box" style="margin-top: 8px;">ДВЕРИ ЗАКРЫТЫ</div>
             </div>
             <div class="column-divider"></div>
@@ -444,7 +463,7 @@
                         <button id="sw_kit_light" class="toggle-btn" onclick="send('dom/svKuh1', states.kit_light?0:1)"></button>
                     </div>
                     <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
-                        <span class="label-inline">ПОДСВЕТКА РАБОЧЕЙ ЗОНЫ</span>
+                        <span class="label-inline">ПОДСВЕТКА<br>РАБОЧИХ ЗОН</span>
                         <button id="sw_kit_sub" class="toggle-btn" onclick="send('dom/svKuh2', states.kit_sub?0:1)"></button>
                     </div>
                     <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
@@ -563,44 +582,59 @@
 
     <!-- ==================== ОВЕРЛЕЙ ОХРАНЫ ==================== -->
     <div id="security-overlay" class="overlay">
-        <div class="unified-card">
-            <div class="column" style="justify-content: flex-start;">
-                <h3 class="col-title">ОХРАНА</h3>
-                <div style="text-align: center; margin: 30px 0 20px 0;">
-                    <div style="font-size: 60px; margin-bottom: 15px;" id="security_lock_icon">🔒</div>
-                    <button style="width: 100%; padding: 10px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: bold;" onclick="toggleSecurityMode()">ВКЛЮЧИТЬ/ВЫКЛЮЧИТЬ</button>
+        <div class="unified-card" style="flex-direction: column; max-width: 500px; align-items: center;">
+
+            <!-- ЗАГОЛОВОК -->
+            <div style="font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; align-self: flex-start;">ОХРАНА И КОНТРОЛЬ ПЕРИМЕТРА</div>
+
+            <!-- КНОПКА КАК У ВОДОНАГРЕВАТЕЛЯ -->
+            <button id="sw_security" style="width: 100%; padding: 14px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; margin-bottom: 24px; transition: 0.3s; letter-spacing: 1px;" onclick="toggleSecurityMode()">СНЯТА С ОХРАНЫ</button>
+
+            <!-- МАТРИЦА ДАТЧИКОВ 3×2 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%;">
+
+                <div id="sensor_block_hall" class="sensor-block">
+                    <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <div class="sensor-name">Зал (Окно)</div>
+                    <div id="sensor_hall_window" class="sensor-status closed">ЗАКРЫТО</div>
+                    <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px;">
-                    <div style="font-size: 12px; color: #a5d6ff; text-align: center; font-weight: bold;" id="security_windows_status">Все окна закрыты</div>
+
+                <div id="sensor_block_bed" class="sensor-block">
+                    <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <div class="sensor-name">Спальня (Окно)</div>
+                    <div id="sensor_bed_window" class="sensor-status closed">ЗАКРЫТО</div>
+                    <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
-                    <div style="font-size: 12px; color: #a5d6ff; text-align: center; font-weight: bold;" id="security_doors_status">Двери закрыты</div>
+
+                <div id="sensor_block_kids" class="sensor-block">
+                    <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <div class="sensor-name">Детская (Окно)</div>
+                    <div id="sensor_kids_window" class="sensor-status closed">ЗАКРЫТО</div>
+                    <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-            </div>
-            <div class="column-divider"></div>
-            <div class="column" style="gap: 15px;">
-                <h3 class="col-title">СТАТУС ДАТЧИКОВ</h3>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
-                    <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">ЗАЛ</div>
-                    <div id="sensor_hall_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
+
+                <div id="sensor_block_kitchen_win" class="sensor-block">
+                    <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
+                    <div class="sensor-name">Кухня (Окно)</div>
+                    <div id="sensor_kitchen_window" class="sensor-status closed">ЗАКРЫТО</div>
+                    <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
-                    <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">СПАЛЬНЯ</div>
-                    <div id="sensor_bed_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
+
+                <div id="sensor_block_kitchen_door" class="sensor-block">
+                    <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="3" y="1" width="14" height="22" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor"/></svg>
+                    <div class="sensor-name">Кухня (Дверь)</div>
+                    <div id="sensor_kitchen_door" class="sensor-status closed">ЗАКРЫТО</div>
+                    <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
-                    <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">ДЕТСКАЯ</div>
-                    <div id="sensor_kids_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
+
+                <div id="sensor_block_front" class="sensor-block">
+                    <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="3" y="1" width="14" height="22" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor"/></svg>
+                    <div class="sensor-name">Входная дверь</div>
+                    <div id="sensor_front_door" class="sensor-status closed">ЗАКРЫТО</div>
+                    <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
-                    <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">КУХНЯ</div>
-                    <div id="sensor_kitchen_window" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Окно: ЗАКРЫТО</div>
-                    <div id="sensor_kitchen_door"   style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Двери: ЗАКРЫТО</div>
-                </div>
-                <div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid var(--border);">
-                    <div style="font-size: 11px; color: #8b949e; margin-bottom: 8px; font-weight: bold;">ВХОДНАЯ ДВЕРЬ</div>
-                    <div id="sensor_front_door" style="font-size: 10px; color: #c9d1d9; padding: 4px 0;">Дверь: ЗАКРЫТО</div>
-                </div>
+
             </div>
         </div>
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
