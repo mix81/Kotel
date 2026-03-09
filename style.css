@@ -83,48 +83,44 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     justify-content: flex-start;
     z-index: 4000;
     overflow-y: auto;
-    padding: 20px 15px 40px;
+    overflow-x: hidden;
+    padding: 130px 15px 80px;
+    -webkit-overflow-scrolling: touch;
 }
-/* Фоновое затемнение — отдельный псевдоэлемент, не затрагивает контент */
+/* Размытый тёмный фон — как у оверлея */
 .fullscreen-panel::before {
     content: '';
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    inset: 0;
     background: rgba(13, 17, 23, 0.55);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     opacity: 0;
     transition: opacity 0.4s ease;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
 }
-.fullscreen-panel.panel-active::before {
-    opacity: 1;
-}
-/* Карточки внутри — никогда не размываются */
+.fullscreen-panel.panel-active::before { opacity: 1; }
+/* Карточки — поверх фона, изолированы от blur */
 .fullscreen-panel .cards-grid {
-    opacity: 0;
-    transform: translateY(20px) scale(0.98);
-    transition: opacity 0.45s ease 0.05s, transform 0.45s cubic-bezier(0.22,1,0.36,1) 0.05s;
     position: relative;
     z-index: 1;
+    isolation: isolate;
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.38s ease 0.06s, transform 0.4s cubic-bezier(0.22,1,0.36,1) 0.06s;
+    width: 100%;
 }
-.fullscreen-panel.panel-active .cards-grid {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
+.fullscreen-panel.panel-active .cards-grid { opacity: 1; transform: translateY(0); }
 .fullscreen-panel .close-btn {
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
     position: relative;
     z-index: 1;
+    opacity: 0;
+    transition: opacity 0.35s ease 0.2s;
+    margin-top: 20px;
+    margin-bottom: 30px;
 }
-.fullscreen-panel.panel-active .close-btn {
-    opacity: 1;
-    transform: translateY(0);
-}
+.fullscreen-panel.panel-active .close-btn { opacity: 1; }
 
 /* ===================== УТИЛИТЫ СОСТОЯНИЙ ===================== */
 /* Этап 2: CSS-классы вместо inline JS стилей */
