@@ -312,10 +312,9 @@ function _showPanel(panelId) {
     setTimeout(() => panel.classList.add('panel-active'), 10);
 }
 
-function showRoomsScreen() { DOM['app-content'].classList.add('blurred'); _showPanel('rooms-screen'); }
-function showTechScreen()  { DOM['app-content'].classList.add('blurred'); _showPanel('tech-screen');  }
+function showRoomsScreen() { _showPanel('rooms-screen'); }
+function showTechScreen()  { _showPanel('tech-screen');  }
 function showMainScreen() {
-    DOM['app-content'].classList.remove('blurred');
     ['rooms-screen', 'tech-screen'].forEach(id => {
         const el = DOM[id];
         if (!el || el.style.display === 'none') return;
