@@ -31,7 +31,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     100% { text-shadow: 0 0 25px rgba(165, 214, 255, 1), 0 0 10px rgba(165, 214, 255, 0.8); color: var(--ice-blue); }
 }
 
-@keyframes demo-pulse {
+@keyframes chay-pulse {
+    0%   { filter: drop-shadow(0 0 4px rgba(218,54,51,0.7)); }
+    50%  { filter: drop-shadow(0 0 16px rgba(218,54,51,1)) drop-shadow(0 0 30px rgba(218,54,51,0.5)); }
+    100% { filter: drop-shadow(0 0 4px rgba(218,54,51,0.7)); }
+}
+.chay-on { animation: chay-pulse 1.4s ease-in-out infinite; }
+
+
     0%   { box-shadow: 0 0 5px rgba(218, 54, 51, 0.3); color: #ff6b6b; }
     50%  { box-shadow: 0 0 15px rgba(218, 54, 51, 0.8); color: #ff8888; }
     100% { box-shadow: 0 0 5px rgba(218, 54, 51, 0.3); color: #ff6b6b; }

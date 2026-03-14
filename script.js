@@ -34,14 +34,14 @@ function initDOMCache() {
         't_bed','h_bed','t_bed_ov','h_bed_ov',
         'window-status-text-bed','card-bedroom',
         'sw_svbed','m_bed_day','m_bed_night','r_bed_dim',
-        'sw_svbed_rgb','cp_bed_rgb','r_bed_br',
+        'sw_svbed_rgb','cp_bed_rgb','r_bed_br','sw_wardrobe',
         // Детская
         't_det','h_det','t_det_ov','h_det_ov',
         'window-status-text-det','card-children',
         'sw_svdet','m_det_day','m_det_night','r_det_dim',
         'sw_svdet_rgb','cp_det_rgb','r_det_br','l_det_zad',
         // Кухня
-        't_kit','h_kit','t_kit_ov','h_kit_ov','t_chay','t_chay_ov',
+        't_kit','h_kit','t_kit_ov','h_kit_ov','t_chay','t_chay_ov','sw_chay_stat',
         'window-status-text-kit','door-status-text-kit','card-kitchen',
         'sw_kit_light','sw_kit_sub','sw_kit_night',
         'sw_kit_fan','fan_speed_1','fan_speed_2',
@@ -87,7 +87,7 @@ let states = {
     r2:0, r3:0, sv1:0, sv2:0,
     svbed:0, svbed_rgb:0, bednoc:0,
     svdet:0, svdet_rgb:0, detnoc:0, det_zad:0,
-    kit_light:0, kit_sub:0, kit_night:0, kit_fan:0, kit_fan_speed:0,
+    kit_light:0, kit_sub:0, kit_night:0, kit_fan:0, kit_fan_speed:0, chay_stat:0,
     bath_light:0, bath_mirror:0, bath_dush:0, bath_vent:0,
     water_temp:0, water_zad:0, water_mode:2, water_stat:0,
     hall_vent:0, hall_fan_speed:0, wardrobe_light:0,
@@ -128,6 +128,7 @@ const topicRouter = {
     'dom/davlUlica': v => { setText('p_street', v); setText('p_street_ov', v); },
     'dom/svUlica':   v => { states.street_light = +v; updateButtonState('sw_street_light', +v); updateStreetGlow(); },
     'dom/svMangal':  v => { states.street_bbq = +v;  updateButtonState('sw_street_bbq', +v);   updateStreetGlow(); },
+    'dom/svGarderob':v => { states.wardrobe_light = +v; updateButtonState('sw_wardrobe', +v); },
 
     // --- ЗАЛ ---
     'dom/tempZal': v => { setText('t_hall', v); setText('t_hall_ov', v); updateHomeCardAverage(); },
@@ -191,6 +192,7 @@ const topicRouter = {
     'dom/tempZal_kit': v => { setText('t_kit', v); setText('t_kit_ov', v); },
     'dom/vlagZal_kit': v => { setText('h_kit', v); setText('h_kit_ov', v); },
     'dom/tempChay':    v => { setText('t_chay', v); setText('t_chay_ov', v); },
+    'dom/statChay':    v => { states.chay_stat = +v; updateChayDisplay(); },
     'dom/svKuh1':      v => { states.kit_light = +v; updateButtonState('sw_kit_light', +v); updateKitchenGlow(); updateHomeCardGlow(); },
     'dom/svKuh2':      v => { states.kit_sub   = +v; updateButtonState('sw_kit_sub',   +v); updateKitchenGlow(); updateHomeCardGlow(); },
     'dom/svKuh3':      v => { states.kit_night = +v; updateButtonState('sw_kit_night', +v); updateHomeCardGlow(); },
@@ -525,8 +527,70 @@ function updateWaterStatDisplay() {
 }
 
 // =====================================================================
-// ВЕНТИЛЯЦИЯ
+// ЧАЙНИК
 // =====================================================================
+function updateChayDisplay() {
+    const on = !!states.chay_stat;
+    // Кнопка в оверлее
+    const btn = document.getElementById('sw_chay_stat');
+    if (btn) {
+        btn.innerText      = on ? 'ВКЛЮЧЁН'    : 'ВЫКЛЮЧЕН';
+        btn.style.background  = on ? 'var(--off)' : '#30363d';
+        btn.style.borderColor = on ? 'var(--off)' : 'var(--border)';
+        btn.style.color       = on ? '#fff'        : '#c9d1d9';
+        btn.style.boxShadow   = on ? '0 0 15px rgba(218,54,51,0.5)' : 'none';
+    }
+    // Иконка на главной карточке — пульсирующий красный при включении
+    const cardIcon = document.getElementById('chay_icon_card');
+    if (cardIcon) {
+        cardIcon.style.filter = on
+            ? 'drop-shadow(0 0 8px rgba(218,54,51,0.9))'
+            : 'none';
+        cardIcon.classList.toggle('chay-on', on);
+    }
+    // Иконка в оверлее
+    const ovIcon = document.getElementById('chay_icon_ov');
+    if (ovIcon) {
+        ovIcon.style.filter = on
+            ? 'drop-shadow(0 0 8px rgba(218,54,51,0.9))'
+            : 'none';
+        ovIcon.classList.toggle('chay-on', on);
+    }
+    // Цвет обводки SVG при включении
+    const setChayColor = (svg, color) => {
+        if (!svg) return;
+        svg.querySelectorAll('path, rect').forEach(el => {
+            if (el.getAttribute('stroke') && el.getAttribute('stroke') !== 'none')
+                el.style.stroke = color;
+            if (el.getAttribute('fill') && el.getAttribute('fill') !== 'none' && el.getAttribute('fill') !== 'rgba(88,166,255,0)')
+                el.style.fill = on ? 'rgba(218,54,51,0.08)' : '';
+        });
+    };
+    setChayColor(cardIcon, on ? '#da3633' : '#58a6ff');
+    setChayColor(ovIcon,   on ? '#da3633' : '#58a6ff');
+}
+
+// =====================================================================
+// КАМЕРА
+// =====================================================================
+function openCameraOverlay() {
+    // Обновляем src чтобы перезагрузить поток
+    const img = document.getElementById('camera_feed');
+    const err = document.getElementById('cam_err');
+    if (img) { img.style.display = 'block'; img.src = 'http://192.168.1.90:5000/api/axis_camera?' + Date.now(); }
+    if (err) err.style.display = 'none';
+    const ov = document.getElementById('camera-overlay');
+    if (ov) { ov.style.display = 'flex'; setTimeout(() => ov.classList.add('active'), 10); }
+}
+function closeCameraOverlay() {
+    const ov = document.getElementById('camera-overlay');
+    if (ov) { ov.classList.remove('active'); setTimeout(() => { ov.style.display = 'none'; }, 500); }
+    // Останавливаем поток
+    const img = document.getElementById('camera_feed');
+    if (img) img.src = '';
+}
+
+
 function setFanSpeed(speed) {
     if (isDemoMode) { updateFanSpeedButtons(speed); return; }
     send('dom/Vityjka1', speed);
