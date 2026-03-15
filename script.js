@@ -57,6 +57,9 @@ function initDOMCache() {
         'card_shield_svg','card-security',
         'sensor_hall_window','sensor_bed_window','sensor_kids_window',
         'sensor_kitchen_window','sensor_kitchen_door','sensor_front_door',
+        // Сервер
+        'srv_cpu','srv_cpu_bar','srv_ram','srv_ram_bar',
+        'srv_disk','srv_disk_bar','srv_temp','card-server',
         // Дом-карточка
         't_home','h_home','card-home',
         // UI экранов
@@ -226,6 +229,12 @@ const topicRouter = {
     'dom/oknoSpalny':  v => { updateWindowStatus('window-status-text-bed', v, 't_bed'); updateSecuritySensor('sensor_bed_window', v); },
     'dom/oknoDetskay': v => { updateWindowStatus('window-status-text-det', v, 't_det'); updateSecuritySensor('sensor_kids_window', v); },
     'dom/ohrana':      v => { states.security_mode = +v; updateSecurityDisplay(); },
+
+    // --- СЕРВЕР ---
+    'server/cpu/state':  v => updateServerBar('srv_cpu',  'srv_cpu_bar',  v, '#58a6ff'),
+    'server/ram/state':  v => updateServerBar('srv_ram',  'srv_ram_bar',  v, '#a5d6ff'),
+    'server/disk/state': v => updateServerBar('srv_disk', 'srv_disk_bar', v, '#e3b341'),
+    'server/temp/state': v => updateServerTemp(v),
 };
 
 // =====================================================================
@@ -251,7 +260,7 @@ document.addEventListener('visibilitychange', () => {
 function connect() {
     mqtt.connect({
         userName: cfg.u, password: cfg.w, useSSL: true, keepAliveInterval: 60,
-        onSuccess: () => { isConnected = true; mqtt.subscribe('heater/#'); mqtt.subscribe('dom/#'); },
+        onSuccess: () => { isConnected = true; mqtt.subscribe('heater/#'); mqtt.subscribe('dom/#'); mqtt.subscribe('server/#'); },
         onFailure: () => setTimeout(connect, 5000)
     });
 }
@@ -727,6 +736,30 @@ function updateSecuritySensor(statusElemId, value) {
     const blockId = sensorBlockMap[statusElemId];
     const block   = document.getElementById(blockId);
     if (block) block.classList.toggle('open', open);
+}
+
+// =====================================================================
+// СЕРВЕР
+// =====================================================================
+function updateServerBar(valId, barId, value, color) {
+    const pct = Math.min(100, Math.max(0, parseFloat(value) || 0));
+    setText(valId, Math.round(pct));
+    const bar = DOM[barId] || document.getElementById(barId);
+    if (bar) {
+        bar.style.width = pct + '%';
+        // Меняем цвет бара при высокой нагрузке (>85%)
+        if (pct > 85)      bar.style.background = 'var(--off)';
+        else if (pct > 65) bar.style.background = '#e3b341';
+        else               bar.style.background = color;
+    }
+}
+function updateServerTemp(value) {
+    const t = parseFloat(value) || 0;
+    const el = DOM['srv_temp'] || document.getElementById('srv_temp');
+    if (el) {
+        el.innerText = Math.round(t);
+        el.style.color = t > 80 ? 'var(--off)' : t > 60 ? '#e3b341' : 'var(--accent)';
+    }
 }
 
 // =====================================================================

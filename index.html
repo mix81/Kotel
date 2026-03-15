@@ -216,6 +216,53 @@
                     </div>
                 </div>
 
+                <!-- СЕРВЕР -->
+                <div class="card" id="card-server">
+                    <h3>Сервер</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:14px;">
+
+                        <!-- CPU -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">CPU</span>
+                                <span style="font-size:16px; font-weight:200; color:#fff;"><span id="srv_cpu">--</span><span style="font-size:10px; color:#8b949e;">%</span></span>
+                            </div>
+                            <div style="height:4px; background:#21262d; border-radius:2px; overflow:hidden;">
+                                <div id="srv_cpu_bar" style="height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.6s ease;"></div>
+                            </div>
+                        </div>
+
+                        <!-- RAM -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">RAM</span>
+                                <span style="font-size:16px; font-weight:200; color:#fff;"><span id="srv_ram">--</span><span style="font-size:10px; color:#8b949e;">%</span></span>
+                            </div>
+                            <div style="height:4px; background:#21262d; border-radius:2px; overflow:hidden;">
+                                <div id="srv_ram_bar" style="height:100%; width:0%; background:#a5d6ff; border-radius:2px; transition:width 0.6s ease;"></div>
+                            </div>
+                        </div>
+
+                        <!-- ДИСК -->
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">ДИСК</span>
+                                <span style="font-size:16px; font-weight:200; color:#fff;"><span id="srv_disk">--</span><span style="font-size:10px; color:#8b949e;">%</span></span>
+                            </div>
+                            <div style="height:4px; background:#21262d; border-radius:2px; overflow:hidden;">
+                                <div id="srv_disk_bar" style="height:100%; width:0%; background:#e3b341; border-radius:2px; transition:width 0.6s ease;"></div>
+                            </div>
+                        </div>
+
+                        <!-- ТЕМПЕРАТУРА CPU -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:10px; border-top:1px solid var(--border);">
+                            <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">ТЕМП. CPU</span>
+                            <span style="font-size:24px; font-weight:200; color:var(--accent);"><span id="srv_temp">--</span><span style="font-size:13px;">°</span></span>
+                        </div>
+
+                    </div>
+                </div>
+
         </div>
         <button class="close-btn" style="margin: 20px 0 30px;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
     </div>
