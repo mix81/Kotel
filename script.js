@@ -74,7 +74,7 @@ function initDOMCache() {
 // ЭТАП 4: ХЕЛПЕР-ФУНКЦИИ (маленькие «черные ящики»)
 // =====================================================================
 const setText  = (id, val) => { const el = DOM[id] || document.getElementById(id); if (el) el.innerText = val; };
-const setVal   = (id, val) => { if (DOM[id]) DOM[id].value = val; };
+const setVal   = (id, val) => { const el = DOM[id] || document.getElementById(id); if (el) el.value = val; };
 const addClass = (id, cls) => { if (DOM[id]) DOM[id].classList.add(cls); };
 const remClass = (id, cls) => { if (DOM[id]) DOM[id].classList.remove(cls); };
 const setStyle = (id, prop, val) => { if (DOM[id]) DOM[id].style[prop] = val; };
@@ -145,14 +145,14 @@ const topicRouter = {
         setVal('r_shtora', p);
         updateCurtainVisual(p);
     },
-    'dom/oknoZal':    v => updateWindowStatus('window-status-text', v, 't_hall'),
+    'dom/oknoZal':    v => { updateWindowStatus('window-status-text', v, 't_hall'); updateSecuritySensor('sensor_hall_window', v); },
     'dom/Pritok':     v => { states.pritok = +v; updateButtonState('sw_hall_vent', +v); },
     'dom/Pritok1':    v => { states.pritok_speed = +v; updateHallFanSpeedButtons(v); },
 
     // --- СПАЛЬНЯ ---
     'dom/tempKsu1':          v => { setText('t_bed', v); setText('t_bed_ov', v); updateHomeCardAverage(); },
     'dom/vlagKsu':           v => { setText('h_bed', v); setText('h_bed_ov', v); updateHomeCardAverage(); },
-    'dom/oknoSpalny':        v => updateWindowStatus('window-status-text-bed', v, 't_bed'),
+    'dom/oknoSpalny':        v => { updateWindowStatus('window-status-text-bed', v, 't_bed'); updateSecuritySensor('sensor_bed_window', v); },
     'dom/svSpalnyLamp/st':   v => { updateItem('svbed', v); updateHomeCardGlow(); },
     'dom/svSpalnyLamp/dim':  v => setVal('r_bed_dim', v),
     'dom/svSpalnyLamp/noc':  v => {
@@ -224,9 +224,7 @@ const topicRouter = {
     'dom/mojnost/kot':      v => setText('power_boiler', v),
     'dom/mojnost/vodogrey': v => setText('power_water_heater', v),
 
-    // --- ДАТЧИКИ ОХРАНЫ + ОКНА/ДВЕРИ (объединено) ---
-    'dom/oknoZal':     v => { updateWindowStatus('window-status-text', v, 't_hall'); updateSecuritySensor('sensor_hall_window', v); },
-    'dom/oknoSpalny':  v => { updateWindowStatus('window-status-text-bed', v, 't_bed'); updateSecuritySensor('sensor_bed_window', v); },
+    // --- ДАТЧИКИ ОХРАНЫ ---
     'dom/oknoDetskay': v => { updateWindowStatus('window-status-text-det', v, 't_det'); updateSecuritySensor('sensor_kids_window', v); },
     'dom/ohrana':      v => { states.security_mode = +v; updateSecurityDisplay(); },
 
@@ -365,8 +363,9 @@ function handleTouchEnd(e) {
 // =====================================================================
 
 function updateButtonState(id, state) {
-    if (!DOM[id]) return;
-    DOM[id].classList.toggle('is-on', !!state);
+    const el = DOM[id] || document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('is-on', !!state);
 }
 
 // Универсальное обновление светового состояния карточки
