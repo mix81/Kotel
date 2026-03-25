@@ -593,9 +593,132 @@ function openCameraOverlay() {
 function closeCameraOverlay() {
     const ov = document.getElementById('camera-overlay');
     if (ov) { ov.classList.remove('active'); setTimeout(() => { ov.style.display = 'none'; }, 500); }
-    // Останавливаем поток
     const img = document.getElementById('camera_feed');
     if (img) img.src = '';
+}
+
+// =====================================================================
+// ГРАФИК ТЕМПЕРАТУРЫ УЛИЦЫ (Home Assistant API)
+// =====================================================================
+const HA_URL   = 'http://192.168.1.90:8123';
+const HA_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI5ZjE1MDRkMDM1YWU0NTgwYTcxMzFkNmIwZGRhYmJhMyIsImlhdCI6MTc3NDQ1MjMwNywiZXhwIjoyMDg5ODEyMzA3fQ.3M7k5Q-MS65PFTQxRWWf4ThGwEwRQ9tC6cb5UFc0qdg';
+const HA_ENTITY = 'sensor.temperature_158d00052dc128';
+
+let streetChart = null;
+
+function openChartOverlay() {
+    const ov = document.getElementById('chart-overlay');
+    if (!ov) return;
+    ov.style.display = 'flex';
+    setTimeout(() => ov.classList.add('active'), 10);
+    // Загружаем 6ч по умолчанию
+    loadStreetChart(6, document.querySelector('.chart-period-active'));
+}
+
+function closeChartOverlay() {
+    const ov = document.getElementById('chart-overlay');
+    if (!ov) return;
+    ov.classList.remove('active');
+    setTimeout(() => { ov.style.display = 'none'; }, 500);
+    if (streetChart) { streetChart.destroy(); streetChart = null; }
+}
+
+async function loadStreetChart(hours, btn) {
+    // Подсветка кнопок
+    document.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('chart-period-active'));
+    if (btn) btn.classList.add('chart-period-active');
+
+    const loadEl = document.getElementById('chart_loading');
+    const errEl  = document.getElementById('chart_error');
+    if (loadEl) loadEl.style.display = 'block';
+    if (errEl)  errEl.style.display  = 'none';
+
+    const startTime = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+
+    try {
+        const resp = await fetch(
+            `${HA_URL}/api/history/period/${startTime}?filter_entity_id=${HA_ENTITY}&minimal_response=true`,
+            { headers: { 'Authorization': `Bearer ${HA_TOKEN}`, 'Content-Type': 'application/json' } }
+        );
+
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const data = await resp.json();
+        const history = data[0];
+
+        if (!history || history.length === 0) throw new Error('Нет данных');
+
+        const labels = history.map(e => {
+            const d = new Date(e.last_changed);
+            return d.getHours() + ':' + d.getMinutes().toString().padStart(2, '0');
+        });
+        const values = history
+            .map(e => parseFloat(e.state))
+            .map(v => isNaN(v) ? null : v);
+
+        // Последнее не-null значение
+        const lastVal = [...values].reverse().find(v => v !== null);
+        const lastEl = document.getElementById('chart_last_val');
+        if (lastEl && lastVal !== undefined) lastEl.innerText = lastVal.toFixed(1) + '°C';
+
+        renderStreetChart(labels, values);
+
+    } catch (err) {
+        console.error('Chart error:', err);
+        if (errEl) {
+            errEl.style.display = 'block';
+            errEl.innerText = 'Ошибка загрузки\n' + err.message;
+        }
+    } finally {
+        if (loadEl) loadEl.style.display = 'none';
+    }
+}
+
+function renderStreetChart(labels, values) {
+    const ctx = document.getElementById('streetTempChart');
+    if (!ctx) return;
+
+    if (streetChart) { streetChart.destroy(); streetChart = null; }
+
+    streetChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Температура',
+                data: values,
+                borderColor: '#58a6ff',
+                backgroundColor: 'rgba(88,166,255,0.08)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: labels.length > 60 ? 0 : 2,
+                spanGaps: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 400 },
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    grid: { color: '#21262d' },
+                    ticks: { color: '#8b949e', font: { size: 11 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: '#8b949e',
+                        maxRotation: 0,
+                        autoSkip: true,
+                        maxTicksLimit: 7,
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
 }
 
 

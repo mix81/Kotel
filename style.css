@@ -395,3 +395,24 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
     #cards-container { flex-direction: column !important; gap: 20px !important; }
     #card-home, #card-street { max-width: 100% !important; min-width: 100% !important; flex: 1 !important; }
 }
+
+/* ===================== ГРАФИК ===================== */
+.chart-period-btn {
+    background: #21262d;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: 0.2s;
+}
+.chart-period-btn:hover { border-color: var(--accent); color: var(--accent); }
+.chart-period-active {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    box-shadow: 0 0 10px rgba(88,166,255,0.3);
+}
+
