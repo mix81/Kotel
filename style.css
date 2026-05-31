@@ -36,13 +36,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     50%  { filter: drop-shadow(0 0 16px rgba(218,54,51,1)) drop-shadow(0 0 30px rgba(218,54,51,0.5)); }
     100% { filter: drop-shadow(0 0 4px rgba(218,54,51,0.7)); }
 }
-.chay-on { animation: chay-pulse 1.4s ease-in-out infinite; }
 
-
+@keyframes demo-pulse {
     0%   { box-shadow: 0 0 5px rgba(218, 54, 51, 0.3); color: #ff6b6b; }
     50%  { box-shadow: 0 0 15px rgba(218, 54, 51, 0.8); color: #ff8888; }
     100% { box-shadow: 0 0 5px rgba(218, 54, 51, 0.3); color: #ff6b6b; }
 }
+
+@keyframes mqtt-pulse {
+    0% { text-shadow: 0 0 0px rgba(35,134,54,0); }
+    50% { text-shadow: 0 0 6px rgba(35,134,54,0.8); }
+    100% { text-shadow: 0 0 0px rgba(35,134,54,0); }
+}
+
+.chay-on { animation: chay-pulse 1.4s ease-in-out infinite; }
 
 /* ===================== ЧАСЫ (фиксированная карточка по центру) ===================== */
 .clock-card {
@@ -94,7 +101,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     padding: 130px 15px 80px;
     -webkit-overflow-scrolling: touch;
 }
-/* Размытый тёмный фон — как у оверлея */
 .fullscreen-panel::before {
     content: '';
     position: fixed;
@@ -108,7 +114,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
     pointer-events: none;
 }
 .fullscreen-panel.panel-active::before { opacity: 1; }
-/* Карточки — поверх фона, изолированы от blur */
 .fullscreen-panel .cards-grid {
     position: relative;
     z-index: 1;
@@ -130,7 +135,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .fullscreen-panel.panel-active .close-btn { opacity: 1; }
 
 /* ===================== УТИЛИТЫ СОСТОЯНИЙ ===================== */
-/* Этап 2: CSS-классы вместо inline JS стилей */
 .temp-pulse { animation: temp-alert-pulse 1.5s infinite alternate ease-in-out; color: var(--ice-blue) !important; }
 
 .btn-active { background: #58a6ff !important; color: #fff !important; }
@@ -292,10 +296,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, sa
 .toggle-btn.is-on { background: var(--on); }
 .toggle-btn.is-on::before { left: 27px; }
 
-/* label-inline допускает перенос строки */
 .label-inline { font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 2px; font-weight: bold; line-height: 1.4; }
 
-/* Щит охраны на карточке */
 #card_shield_svg path { transition: stroke 0.5s ease, fill 0.5s ease; }
 #card_shield_svg { transition: filter 0.5s ease; }
 
@@ -327,8 +329,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
     box-shadow: inset 0 0 25px rgba(218,54,51,0.12),
                 0 0 15px rgba(218,54,51,0.2);
 }
-
-/* SVG иконки внутри ячейки */
 .sensor-svg-icon {
     width: 20px; height: 20px;
     color: var(--accent);
@@ -338,7 +338,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
     flex-shrink: 0;
 }
 .sensor-block.open .sensor-svg-icon { color: var(--off); }
-
 .sensor-name {
     font-size: 8.5px;
     color: #8b949e;
@@ -359,8 +358,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
     color: var(--off);
     text-shadow: 0 0 8px rgba(218,54,51,0.6);
 }
-
-/* Щит в правом нижнем углу */
 .sensor-shield-svg {
     position: absolute;
     bottom: 7px; right: 8px;
@@ -375,7 +372,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
     opacity: 0.7;
 }
 
-
 .back-btn {
     width: 180px; height: 35px; border-radius: 8px;
     background: #30363d; border: 2px solid #58a6ff; color: #58a6ff;
@@ -387,16 +383,36 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
 .back-btn:hover { box-shadow: 0 0 25px rgba(88,166,255,1), inset 0 0 15px rgba(88,166,255,0.6); }
 
 /* ===================== АДАПТИВНОСТЬ ===================== */
-@media (max-width: 650px) {
+@media (max-width: 600px) {
     .unified-card { flex-direction: column; padding: 20px; max-height: 90vh; overflow-y: auto; }
     .column-divider { display: none; }
-    .card { max-width: 100%; }
-    #main-screen { flex-direction: column !important; gap: 20px !important; }
-    #cards-container { flex-direction: column !important; gap: 20px !important; }
-    #card-home, #card-street { max-width: 100% !important; min-width: 100% !important; flex: 1 !important; }
+    .card { flex: 0 0 100% !important; max-width: 100% !important; min-width: 0 !important; }
+    #main-screen { flex-direction: column !important; gap: 15px !important; }
+    #cards-container { flex-direction: column !important; gap: 15px !important; }
+    #card-home, #card-street { max-width: 100% !important; min-width: 100% !important; flex: 0 0 100% !important; }
+    .cards-grid { gap: 15px; padding: 8px; }
+    .fullscreen-panel { padding: 110px 10px 70px; }
+}
+@media (min-width: 601px) and (max-width: 1024px) {
+    .card { flex: 1 1 calc(50% - 10px); max-width: calc(50% - 10px); }
 }
 
-/* ===================== ГРАФИК ===================== */
+/* ===================== КНОПКИ СЕРВИСОВ СЕРВЕРА ===================== */
+.server-app-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: rgba(88,166,255,0.05);
+    border: 1px solid rgba(88,166,255,0.15);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+.server-app-btn:hover  { background: rgba(88,166,255,0.12); border-color: rgba(88,166,255,0.35); }
+.server-app-btn:active { background: rgba(88,166,255,0.18); }
+
 .chart-period-btn {
     background: #21262d;
     border: 1px solid var(--border);
@@ -414,5 +430,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); margin: 15px 0; 
     border-color: var(--accent) !important;
     color: var(--accent) !important;
     box-shadow: 0 0 10px rgba(88,166,255,0.3);
-}  
+}
 
+#weather-overlay {
+    display: none;
+}

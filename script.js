@@ -14,7 +14,6 @@ const mqtt = new Paho.MQTT.Client(cfg.h, cfg.p, cfg.id);
 const DOM = {};
 function initDOMCache() {
     const ids = [
-        // Котел
         't_water','t_water_left','l_sp','l_sp_dash','l_sp_left','r_sp',
         'pwr_val','st_r2_dash','st_r3_dash','sw_r2','sw_r3',
         'badge_auto','badge_manual','badge_off',
@@ -22,56 +21,48 @@ function initDOMCache() {
         'm_auto','m_manual','m_off',
         'l_rt','r_rt','l_kf','r_kf','i_kp','i_ki','i_kd','t_out_big',
         'kot_pressure',
-        // Улица
         't_street','h_street','p_street','t_street_ov','h_street_ov','p_street_ov',
         'sw_street_light','sw_street_bbq','card-street',
-        // Зал
         't_hall','h_hall','t_hall_ov','h_hall_ov',
         'l_shtora','r_shtora','curt-label-dash','curt-l','curt-r',
         'window-status-text','card-hall','sw_sv1','sw_sv2',
         'sw_hall_vent','hall_speed_1','hall_speed_2',
-        // Спальня
         't_bed','h_bed','t_bed_ov','h_bed_ov',
         'window-status-text-bed','card-bedroom',
         'sw_svbed','m_bed_day','m_bed_night','r_bed_dim',
         'sw_svbed_rgb','cp_bed_rgb','r_bed_br','sw_wardrobe',
-        // Детская
         't_det','h_det','t_det_ov','h_det_ov',
         'window-status-text-det','card-children',
         'sw_svdet','m_det_day','m_det_night','r_det_dim',
         'sw_svdet_rgb','cp_det_rgb','r_det_br','l_det_zad',
-        // Кухня
         't_kit','h_kit','t_kit_ov','h_kit_ov','t_chay','t_chay_ov','sw_chay_stat',
         'window-status-text-kit','door-status-text-kit','card-kitchen',
         'sw_kit_light','sw_kit_sub','sw_kit_night',
         'sw_kit_fan','fan_speed_1','fan_speed_2',
-        // Ванная
         't_vod','t_vod_ov','t_vod_zad','t_vod_zad_ov',
         'card-bathroom','sw_bath_light','sw_bath_mirror','sw_bath_dush','sw_bath_vent',
         'sw_water_stat','mode_turbo','mode_normal','mode_eco','mode_min',
         'bath-temp-container','bath-zad-container',
-        // Энергия
         'power_watts','power_watts_ov','voltage_volts','voltage_volts_ov',
         'current_amps','current_amps_ov','power_boiler','power_water_heater',
-        // Охрана
         'card_shield_svg','card-security',
         'sensor_hall_window','sensor_bed_window','sensor_kids_window',
         'sensor_kitchen_window','sensor_kitchen_door','sensor_front_door',
-        // Сервер
-        'srv_cpu','srv_cpu_bar','srv_ram','srv_ram_bar',
-        'srv_disk','srv_disk_bar','srv_temp','card-server',
-        // Дом-карточка
+        'srv_cpu','srv_cpu_bar','srv_ram','srv_ram_bar','srv_ram_used','srv_ram_total',
+        'srv_disk','srv_disk_bar','srv_disk_used','srv_disk_total','srv_temp','card-server',
         't_home','h_home','card-home',
-        // UI экранов
-        'clock-time','clock-date','demo-badge',
-        'auth-screen','app-content','passInput',
-        'main-screen','rooms-screen','tech-screen',
+        'clock-time','clock-date',
+        'app-content','main-screen','rooms-screen','tech-screen',
+        // Контроль
+        'ctrl_mqtt_status','ctrl_pwa_status','ctrl_heartbeat','ctrl_last_msg',
+        'ctrl_ov_mqtt','ctrl_host','ctrl_client_id','ctrl_version','ctrl_mode',
+        'ctrl_msg_rx','ctrl_msg_tx','ctrl_msg_queued','ctrl_log_entries'
     ];
     ids.forEach(id => { DOM[id] = document.getElementById(id); });
 }
 
 // =====================================================================
-// ЭТАП 4: ХЕЛПЕР-ФУНКЦИИ (маленькие «черные ящики»)
+// ХЕЛПЕР-ФУНКЦИИ
 // =====================================================================
 const setText  = (id, val) => { const el = DOM[id] || document.getElementById(id); if (el) el.innerText = val; };
 const setVal   = (id, val) => { const el = DOM[id] || document.getElementById(id); if (el) el.value = val; };
@@ -83,7 +74,6 @@ const setCssVar = (name, val) => document.documentElement.style.setProperty(name
 // =====================================================================
 // СОСТОЯНИЯ И НАСТРОЙКИ
 // =====================================================================
-let isDemoMode = false;
 let isConnected = false;
 
 let states = {
@@ -95,7 +85,8 @@ let states = {
     water_temp:0, water_zad:0, water_mode:2, water_stat:0,
     hall_vent:0, hall_fan_speed:0, wardrobe_light:0,
     pritok:0, pritok_speed:0,
-    street_light:0, street_bbq:0, security_mode:0,
+    street_light:0, street_bbq:0, street_garland:0, street_lanterns:0, security_mode:0,
+    watering_zone1:0, watering_zone2:0,
     mode: 'off'
 };
 
@@ -108,11 +99,109 @@ const colorMap = {
 };
 
 // =====================================================================
-// ЭТАП 3: ОБЪЕКТ-МАРШРУТИЗАТОР MQTT-СООБЩЕНИЙ
-// Вместо 50+ if-else — один справочник тема → функция
+// КОНТРОЛЬ — диагностика и управление
+// =====================================================================
+let mqttRxCount = 0;
+let mqttTxCount = 0;
+let messageQueue = [];
+let lastMessageTime = Date.now();
+const VERSION = '1.2.0';
+
+function updateControlPanel() {
+    const statusSpan = document.getElementById('ctrl_mqtt_status');
+    if (statusSpan) {
+        statusSpan.innerText = isConnected ? '● ONLINE' : '● OFFLINE';
+        statusSpan.style.color = isConnected ? '#238636' : '#da3633';
+    }
+    const ovStatus = document.getElementById('ctrl_ov_mqtt');
+    if (ovStatus) {
+        ovStatus.innerText = isConnected ? 'ONLINE' : 'OFFLINE';
+        ovStatus.style.backgroundColor = isConnected ? '#238636' : '#da3633';
+    }
+    const clientIdSpan = document.getElementById('ctrl_client_id');
+    if (clientIdSpan) clientIdSpan.innerText = cfg.id;
+    
+    const pwaSpan = document.getElementById('ctrl_pwa_status');
+    const modeSpan = document.getElementById('ctrl_mode');
+    if (pwaSpan && modeSpan) {
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+        pwaSpan.innerText = isPWA ? '✓ PWA' : '🌐 Браузер';
+        pwaSpan.style.color = isPWA ? '#238636' : '#e3b341';
+        modeSpan.innerText = isPWA ? 'PWA (установлено)' : 'Браузер';
+    }
+    
+    const rxSpan = document.getElementById('ctrl_msg_rx');
+    if (rxSpan) rxSpan.innerText = mqttRxCount;
+    const txSpan = document.getElementById('ctrl_msg_tx');
+    if (txSpan) txSpan.innerText = mqttTxCount;
+    const queuedSpan = document.getElementById('ctrl_msg_queued');
+    if (queuedSpan) queuedSpan.innerText = messageQueue.length;
+    
+    const sinceLastMsg = (Date.now() - lastMessageTime) / 1000;
+    const heartbeatPercent = Math.max(0, Math.min(100, 100 - (sinceLastMsg / 60) * 100));
+    const heartbeatBar = document.getElementById('ctrl_heartbeat');
+    if (heartbeatBar) heartbeatBar.style.width = heartbeatPercent + '%';
+    
+    const lastMsgSpan = document.getElementById('ctrl_last_msg');
+    if (lastMsgSpan) {
+        if (sinceLastMsg < 60) lastMsgSpan.innerText = `${Math.floor(sinceLastMsg)} сек назад`;
+        else if (sinceLastMsg < 3600) lastMsgSpan.innerText = `${Math.floor(sinceLastMsg / 60)} мин назад`;
+        else lastMsgSpan.innerText = `${Math.floor(sinceLastMsg / 3600)} ч назад`;
+    }
+}
+
+function addControlLog(msg) {
+    const logDiv = document.getElementById('ctrl_log_entries');
+    if (!logDiv) return;
+    const timestamp = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const entry = document.createElement('div');
+    entry.style.borderBottom = '1px solid #21262d';
+    entry.style.padding = '4px 0';
+    entry.style.fontSize = '10px';
+    entry.innerHTML = `<span style="color:#8b949e;">[${timestamp}]</span> ${msg}`;
+    logDiv.prepend(entry);
+    while (logDiv.children.length > 20) logDiv.removeChild(logDiv.lastChild);
+}
+
+function manualReconnect() {
+    if (mqtt && !isConnected) {
+        addControlLog('🔄 Ручное переподключение MQTT...');
+        connect();
+    } else if (isConnected) {
+        addControlLog('✅ MQTT уже подключён');
+    } else {
+        addControlLog('❌ Ошибка: клиент MQTT не инициализирован');
+    }
+}
+
+function clearAppCache() {
+    if ('caches' in window) {
+        caches.keys().then(names => {
+            names.forEach(name => caches.delete(name));
+        });
+    }
+    localStorage.clear();
+    addControlLog('🗑 Кэш и localStorage очищены, перезагрузка...');
+    setTimeout(() => { window.location.reload(); }, 500);
+}
+
+function flushMessageQueue() {
+    if (isConnected && messageQueue.length > 0) {
+        addControlLog(`🔄 Отправка ${messageQueue.length} отложенных сообщений`);
+        const queueCopy = [...messageQueue];
+        messageQueue = [];
+        queueCopy.forEach(msg => {
+            sendOriginal(msg.topic, msg.value);
+            mqttTxCount++;
+        });
+        updateControlPanel();
+    }
+}
+
+// =====================================================================
+// ОБЪЕКТ-МАРШРУТИЗАТОР MQTT-СООБЩЕНИЙ
 // =====================================================================
 const topicRouter = {
-    // --- КОТЕЛ ---
     'heater/temperature':     v => { setText('t_water', v); setText('t_water_left', v); },
     'heater/setpoint/state':  v => { setText('l_sp', v); setText('l_sp_dash', v); setText('l_sp_left', v); setVal('r_sp', v); },
     'heater/mode/state':      v => updateBoilerMode(v),
@@ -124,16 +213,16 @@ const topicRouter = {
     'heater/kp/state':        v => setVal('i_kp', v),
     'heater/ki/state':        v => setVal('i_ki', v),
     'heater/kd/state':        v => setVal('i_kd', v),
-
-    // --- УЛИЦА ---
     'dom/tempUlica': v => { setText('t_out_big', v); setText('t_street', v); setText('t_street_ov', v); },
     'dom/vlagUlica': v => { setText('h_street', v); setText('h_street_ov', v); },
     'dom/davlUlica': v => { setText('p_street', v); setText('p_street_ov', v); },
     'dom/svUlica':   v => { states.street_light = +v; updateButtonState('sw_street_light', +v); updateStreetGlow(); },
     'dom/svMangal':  v => { states.street_bbq = +v;  updateButtonState('sw_street_bbq', +v);   updateStreetGlow(); },
+    'dom/rozDom':    v => { states.street_garland = +v; updateButtonState('sw_street_garland', +v); updateStreetGlow(); },
+    'dom/svFonar':   v => { states.street_lanterns = +v; updateButtonState('sw_street_lanterns', +v); updateStreetGlow(); },
+    'dom/poliv1':    v => { states.watering_zone1 = +v; updateButtonState('sw_watering_zone1', +v); handleWateringToggle(); },
+    'dom/poliv2':    v => { states.watering_zone2 = +v; updateButtonState('sw_watering_zone2', +v); handleWateringToggle(); },
     'dom/svGarderob':v => { states.wardrobe_light = +v; updateButtonState('sw_wardrobe', +v); },
-
-    // --- ЗАЛ ---
     'dom/tempZal': v => { setText('t_hall', v); setText('t_hall_ov', v); updateHomeCardAverage(); },
     'dom/vlagZal': v => { setText('h_hall', v); setText('h_hall_ov', v); updateHomeCardAverage(); },
     'dom/svZal1':  v => { updateItem('sv1', v); updateHomeCardGlow(); },
@@ -148,8 +237,6 @@ const topicRouter = {
     'dom/oknoZal':    v => { updateWindowStatus('window-status-text', v, 't_hall'); updateSecuritySensor('sensor_hall_window', v); },
     'dom/Pritok':     v => { states.pritok = +v; updateButtonState('sw_hall_vent', +v); },
     'dom/Pritok1':    v => { states.pritok_speed = +v; updateHallFanSpeedButtons(v); },
-
-    // --- СПАЛЬНЯ ---
     'dom/tempKsu1':          v => { setText('t_bed', v); setText('t_bed_ov', v); updateHomeCardAverage(); },
     'dom/vlagKsu':           v => { setText('h_bed', v); setText('h_bed_ov', v); updateHomeCardAverage(); },
     'dom/oknoSpalny':        v => { updateWindowStatus('window-status-text-bed', v, 't_bed'); updateSecuritySensor('sensor_bed_window', v); },
@@ -169,8 +256,6 @@ const topicRouter = {
         setVal('cp_bed_rgb', colorVal);
         updateItem('svbed_rgb', states.svbed_rgb);
     },
-
-    // --- ДЕТСКАЯ ---
     'dom/tempMot1':       v => { setText('t_det', v); setText('t_det_ov', v); updateHomeCardAverage(); },
     'dom/vlagMot':        v => { setText('h_det', v); setText('h_det_ov', v); updateHomeCardAverage(); },
     'dom/tempMotzad':     v => { states.det_zad = parseFloat(v); setText('l_det_zad', parseFloat(v).toFixed(1)); },
@@ -190,8 +275,6 @@ const topicRouter = {
         setVal('cp_det_rgb', colorVal);
         updateItem('svdet_rgb', states.svdet_rgb);
     },
-
-    // --- КУХНЯ ---
     'dom/tempZal_kit': v => { setText('t_kit', v); setText('t_kit_ov', v); },
     'dom/vlagZal_kit': v => { setText('h_kit', v); setText('h_kit_ov', v); },
     'dom/tempChay':    v => { setText('t_chay', v); setText('t_chay_ov', v); },
@@ -203,8 +286,6 @@ const topicRouter = {
     'dom/Vityjka1':    v => { states.kit_fan_speed = +v; updateFanSpeedButtons(v); },
     'dom/oknoKuhny':   v => { updateWindowStatus('window-status-text-kit', v, 't_kit'); updateSecuritySensor('sensor_kitchen_window', v); },
     'dom/dverKuhny':   v => { updateDoorStatus('door-status-text-kit', v, 't_kit'); updateSecuritySensor('sensor_kitchen_door', v); },
-
-    // --- ВАННАЯ ---
     'dom/vod/temp':  v => { setText('t_vod', v); setText('t_vod_ov', v); states.water_temp = parseFloat(v); },
     'dom/vod/zad':   v => { setText('t_vod_zad', v); setText('t_vod_zad_ov', v); states.water_zad = parseFloat(v); },
     'dom/vod/regim': v => { states.water_mode = +v; updateWaterModeButtons(v); },
@@ -213,38 +294,41 @@ const topicRouter = {
     'dom/svVanZerkalo':   v => { states.bath_mirror = +v; updateButtonState('sw_bath_mirror', +v); },
     'dom/svVanDush':      v => { states.bath_dush   = +v; updateButtonState('sw_bath_dush',   +v); updateBathroomGlow(); },
     'dom/svVanVent':      v => { states.bath_vent   = +v; updateButtonState('sw_bath_vent',   +v); },
-
-    // --- ДАВЛЕНИЕ КОТЛА ---
     'dom/kotD': v => setText('kot_pressure', v),
-
-    // --- ЭНЕРГОПОТРЕБЛЕНИЕ ---
     'dom/mojnost':          v => { setText('power_watts', v);    setText('power_watts_ov', v); },
     'dom/napr':             v => { setText('voltage_volts', v);  setText('voltage_volts_ov', v); },
     'dom/tok':              v => { setText('current_amps', v);   setText('current_amps_ov', v); },
     'dom/mojnost/kot':      v => setText('power_boiler', v),
     'dom/mojnost/vodogrey': v => setText('power_water_heater', v),
-
-    // --- ДАТЧИКИ ОХРАНЫ ---
     'dom/oknoDetskay': v => { updateWindowStatus('window-status-text-det', v, 't_det'); updateSecuritySensor('sensor_kids_window', v); },
     'dom/ohrana':      v => { states.security_mode = +v; updateSecurityDisplay(); },
-
-    // --- СЕРВЕР ---
-    'server/cpu/state':  v => updateServerBar('srv_cpu',  'srv_cpu_bar',  v, '#58a6ff'),
-    'server/ram/state':  v => updateServerBar('srv_ram',  'srv_ram_bar',  v, '#a5d6ff'),
-    'server/disk/state': v => updateServerBar('srv_disk', 'srv_disk_bar', v, '#e3b341'),
-    'server/temp/state': v => updateServerTemp(v),
+    'home/opi4pro/cpu/temp':           v => updateServerTemp(v),
+    'home/opi4pro/cpu/load_pct':       v => updateServerBar('srv_cpu',  'srv_cpu_bar',  v, '#58a6ff'),
+    'home/opi4pro/ram/usage_pct':      v => { updateServerBar('srv_ram', 'srv_ram_bar', v, '#a5d6ff'); const el = DOM['srv_ram']||document.getElementById('srv_ram'); if(el) el.innerText = Math.round(v)+'%'; },
+    'home/opi4pro/ram/used_gb':        v => setText('srv_ram_used',  parseFloat(v).toFixed(1)),
+    'home/opi4pro/ram/total_gb':       v => setText('srv_ram_total', parseFloat(v).toFixed(1)),
+    'home/opi4pro/disk/root/percent':  v => { updateServerBar('srv_disk', 'srv_disk_bar', v, '#e3b341'); const el = DOM['srv_disk']||document.getElementById('srv_disk'); if(el) el.innerText = Math.round(v)+'%'; },
+    'home/opi4pro/disk/root/used_gb':  v => setText('srv_disk_used',  parseFloat(v).toFixed(0)),
+    'home/opi4pro/disk/root/total_gb': v => setText('srv_disk_total', parseFloat(v).toFixed(0)),
 };
 
 // =====================================================================
-// ОБРАБОТЧИК MQTT (теперь 3 строки вместо 150)
+// ОБРАБОТЧИК MQTT с логгированием
 // =====================================================================
+const originalOnMessageArrived = mqtt.onMessageArrived;
 mqtt.onMessageArrived = (m) => {
+    mqttRxCount++;
+    lastMessageTime = Date.now();
+    addControlLog(`📩 ${m.destinationName} = ${m.payloadString.substring(0, 40)}`);
     const handler = topicRouter[m.destinationName];
     if (handler) handler(m.payloadString);
+    updateControlPanel();
 };
 
 mqtt.onConnectionLost = (resp) => {
     isConnected = false;
+    addControlLog(`⚠️ MQTT соединение потеряно (код: ${resp.errorCode})`);
+    updateControlPanel();
     if (resp.errorCode !== 0) setTimeout(connect, 5000);
 };
 
@@ -258,22 +342,26 @@ document.addEventListener('visibilitychange', () => {
 function connect() {
     mqtt.connect({
         userName: cfg.u, password: cfg.w, useSSL: true, keepAliveInterval: 60,
-        onSuccess: () => { isConnected = true; mqtt.subscribe('heater/#'); mqtt.subscribe('dom/#'); mqtt.subscribe('server/#'); },
-        onFailure: () => setTimeout(connect, 5000)
+        onSuccess: () => { 
+            isConnected = true; 
+            addControlLog('✅ MQTT подключён');
+            mqtt.subscribe('heater/#'); 
+            mqtt.subscribe('dom/#'); 
+            mqtt.subscribe('home/opi4pro/#');
+            flushMessageQueue();
+            updateControlPanel();
+        },
+        onFailure: () => {
+            addControlLog('❌ Ошибка подключения MQTT, повтор через 5 сек');
+            setTimeout(connect, 5000);
+        }
     });
 }
 
 // =====================================================================
-// ОТПРАВКА СООБЩЕНИЯ
+// ОТПРАВКА СООБЩЕНИЯ с очередью
 // =====================================================================
-function send(topic, value) {
-    if (isDemoMode) {
-        console.log('📱 ДЕМО:', topic, '=', value);
-        // Прогоняем через роутер локально
-        const handler = topicRouter[topic];
-        if (handler) handler(String(value));
-        return;
-    }
+function sendOriginal(topic, value) {
     if (!isConnected) return;
     const msg = new Paho.MQTT.Message(String(value));
     msg.destinationName = topic;
@@ -281,26 +369,17 @@ function send(topic, value) {
     mqtt.send(msg);
 }
 
-// =====================================================================
-// АВТОРИЗАЦИЯ
-// =====================================================================
-function checkPass() {
-    const pass = DOM['passInput'] ? DOM['passInput'].value : '';
-    if (pass === '1902') {
-        isDemoMode = false;
-        if (DOM['demo-badge'])  DOM['demo-badge'].style.display = 'none';
-        if (DOM['auth-screen']) DOM['auth-screen'].style.display = 'none';
-        if (DOM['app-content']) DOM['app-content'].style.display = 'flex';
-        connect();
-    } else if (pass.length > 0) {
-        isDemoMode = true;
-        if (DOM['demo-badge'])  DOM['demo-badge'].style.display = 'block';
-        if (DOM['auth-screen']) DOM['auth-screen'].style.display = 'none';
-        if (DOM['app-content']) DOM['app-content'].style.display = 'flex';
-        startDemoSimulation();
-    } else {
-        alert('Введите пароль!');
+function send(topic, value) {
+    if (!isConnected) {
+        messageQueue.push({ topic, value, ts: Date.now() });
+        addControlLog(`⚠️ В очередь (offline): ${topic} = ${value}`);
+        updateControlPanel();
+        return;
     }
+    mqttTxCount++;
+    addControlLog(`📤 ${topic} = ${value}`);
+    sendOriginal(topic, value);
+    updateControlPanel();
 }
 
 // =====================================================================
@@ -350,7 +429,7 @@ function closeOverlay() {
 }
 
 // =====================================================================
-// СВАЙП (карточка ДОМ)
+// СВАЙП
 // =====================================================================
 let touchStartX = 0;
 function handleTouchStart(e) { touchStartX = e.changedTouches[0].screenX; }
@@ -359,7 +438,7 @@ function handleTouchEnd(e) {
 }
 
 // =====================================================================
-// ЭТАП 2: ОБНОВЛЕНИЕ UI ЧЕРЕЗ CSS-КЛАССЫ И ХЕЛПЕРЫ
+// ОБНОВЛЕНИЕ UI
 // =====================================================================
 
 function updateButtonState(id, state) {
@@ -368,7 +447,6 @@ function updateButtonState(id, state) {
     el.classList.toggle('is-on', !!state);
 }
 
-// Универсальное обновление светового состояния карточки
 function setCardGlow(cardId, cssVarBottom, cssVarTop, onBottom, onTop, borderBottom, borderTop) {
     const card = DOM[cardId];
     if (!card) return;
@@ -381,7 +459,8 @@ function setCardGlow(cardId, cssVarBottom, cssVarTop, onBottom, onTop, borderBot
 }
 
 function updateStreetGlow() {
-    setCardGlow('card-street', '--street-glow-bottom', '--street-glow-top', states.street_light, states.street_bbq);
+    const anyLightOn = states.street_light || states.street_bbq || states.street_garland || states.street_lanterns;
+    setCardGlow('card-street', '--street-glow-bottom', '--street-glow-top', anyLightOn, false);
 }
 function updateKitchenGlow() {
     setCardGlow('card-kitchen', '--kit-glow-bottom', '--kit-glow-top', states.kit_light, states.kit_sub);
@@ -402,7 +481,6 @@ function updateItem(key, val) {
     const badge = document.getElementById('st_' + key + '_dash');
     if (badge) badge.className = states[key] ? 'badge active' : 'badge';
 
-    // Свечение Зала
     if (key === 'sv1' || key === 'sv2') {
         const hallCard = DOM['card-hall'];
         if (hallCard) {
@@ -411,7 +489,6 @@ function updateItem(key, val) {
         }
     }
 
-    // Свечение Спальни
     if (key === 'svbed' || key === 'bednoc') {
         const bedCard = DOM['card-bedroom'];
         if (bedCard && states.svbed) {
@@ -440,7 +517,6 @@ function updateItem(key, val) {
         }
     }
 
-    // Свечение Детской
     if (key === 'svdet' || key === 'detnoc') {
         const detCard = DOM['card-children'];
         if (detCard && states.svdet) {
@@ -472,7 +548,6 @@ function updateItem(key, val) {
 // КОТЕЛ
 // =====================================================================
 function setBoilerMode(mode) {
-    if (isDemoMode) { updateBoilerModeDisplay(mode); return; }
     send('heater/mode/set', mode);
     updateBoilerModeDisplay(mode);
 }
@@ -505,7 +580,6 @@ function updateBoilerModeDisplay(mode) {
 // ВОДА
 // =====================================================================
 function setWaterMode(mode) {
-    if (isDemoMode) { updateWaterModeButtons(mode); return; }
     send('dom/vod/regim', mode);
     updateWaterModeButtons(mode);
 }
@@ -527,7 +601,6 @@ function updateWaterStatDisplay() {
         btn.classList.toggle('water-on', on);
         btn.classList.toggle('water-off', !on);
     }
-    // Этап 2: классы вместо inline-стилей
     DOM['bath-temp-container']?.classList.toggle('sensor-dim', !on);
     DOM['bath-temp-container']?.classList.toggle('sensor-clear', on);
     DOM['bath-zad-container']?.classList.toggle('sensor-dim', !on);
@@ -539,7 +612,6 @@ function updateWaterStatDisplay() {
 // =====================================================================
 function updateChayDisplay() {
     const on = !!states.chay_stat;
-    // Кнопка в оверлее
     const btn = document.getElementById('sw_chay_stat');
     if (btn) {
         btn.innerText      = on ? 'ВКЛЮЧЁН'    : 'ВЫКЛЮЧЕН';
@@ -548,23 +620,16 @@ function updateChayDisplay() {
         btn.style.color       = on ? '#fff'        : '#c9d1d9';
         btn.style.boxShadow   = on ? '0 0 15px rgba(218,54,51,0.5)' : 'none';
     }
-    // Иконка на главной карточке — пульсирующий красный при включении
     const cardIcon = document.getElementById('chay_icon_card');
     if (cardIcon) {
-        cardIcon.style.filter = on
-            ? 'drop-shadow(0 0 8px rgba(218,54,51,0.9))'
-            : 'none';
+        cardIcon.style.filter = on ? 'drop-shadow(0 0 8px rgba(218,54,51,0.9))' : 'none';
         cardIcon.classList.toggle('chay-on', on);
     }
-    // Иконка в оверлее
     const ovIcon = document.getElementById('chay_icon_ov');
     if (ovIcon) {
-        ovIcon.style.filter = on
-            ? 'drop-shadow(0 0 8px rgba(218,54,51,0.9))'
-            : 'none';
+        ovIcon.style.filter = on ? 'drop-shadow(0 0 8px rgba(218,54,51,0.9))' : 'none';
         ovIcon.classList.toggle('chay-on', on);
     }
-    // Цвет обводки SVG при включении
     const setChayColor = (svg, color) => {
         if (!svg) return;
         svg.querySelectorAll('path, rect').forEach(el => {
@@ -582,148 +647,329 @@ function updateChayDisplay() {
 // КАМЕРА
 // =====================================================================
 function openCameraOverlay() {
-    // Обновляем src чтобы перезагрузить поток
-    const img = document.getElementById('camera_feed');
-    const err = document.getElementById('cam_err');
-    if (img) { img.style.display = 'block'; img.src = 'http://192.168.1.90:5000/api/axis_camera?' + Date.now(); }
-    if (err) err.style.display = 'none';
-    const ov = document.getElementById('camera-overlay');
-    if (ov) { ov.style.display = 'flex'; setTimeout(() => ov.classList.add('active'), 10); }
+    const ov     = document.getElementById('camera-overlay');
+    const iframe = document.getElementById('camera_iframe');
+    if (iframe) iframe.src = 'http://192.168.1.74:5000/review';
+    if (ov) ov.style.display = 'flex';
 }
 function closeCameraOverlay() {
-    const ov = document.getElementById('camera-overlay');
-    if (ov) { ov.classList.remove('active'); setTimeout(() => { ov.style.display = 'none'; }, 500); }
-    const img = document.getElementById('camera_feed');
-    if (img) img.src = '';
+    const ov     = document.getElementById('camera-overlay');
+    const iframe = document.getElementById('camera_iframe');
+    if (iframe) iframe.src = '';
+    if (ov) ov.style.display = 'none';
+}
+
+function openWebApp(url) {
+    closeOverlay();
+    window.open(url, '_blank');
 }
 
 // =====================================================================
-// ГРАФИК ТЕМПЕРАТУРЫ УЛИЦЫ (Home Assistant API)
+// ГРАФИКИ ТЕМПЕРАТУР
 // =====================================================================
-const HA_URL   = 'http://192.168.1.90:8123';
-const HA_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI5ZjE1MDRkMDM1YWU0NTgwYTcxMzFkNmIwZGRhYmJhMyIsImlhdCI6MTc3NDQ1MjMwNywiZXhwIjoyMDg5ODEyMzA3fQ.3M7k5Q-MS65PFTQxRWWf4ThGwEwRQ9tC6cb5UFc0qdg';
-const HA_ENTITY = 'sensor.temperature_158d00052dc128';
+const HA_URL    = 'http://192.168.1.90:8123';
+const HA_TOKEN  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI5ZjE1MDRkMDM1YWU0NTgwYTcxMzFkNmIwZGRhYmJhMyIsImlhdCI6MTc3NDQ1MjMwNywiZXhwIjoyMDg5ODEyMzA3fQ.3M7k5Q-MS65PFTQxRWWf4ThGwEwRQ9tC6cb5UFc0qdg';
 
-let streetChart = null;
+const CHART_CFG = {
+    street: {
+        entity:      'sensor.temperature_158d00052dc128',
+        canvasId:    'streetTempChart',
+        loadingId:   'chart_loading',
+        errorId:     'chart_error',
+        lastValId:   'chart_last_val',
+        overlayId:   'chart-overlay',
+        color:       '#58a6ff',
+        colorBg:     'rgba(88,166,255,0.08)',
+        maxHours:    168,
+        defaultHours:6,
+    },
+    boiler: {
+        entity:      'sensor.kontroller_kotla_temperatura_kotla',
+        canvasId:    'boilerTempChart',
+        loadingId:   'boiler_chart_loading',
+        errorId:     'boiler_chart_error',
+        lastValId:   'boiler_chart_last_val',
+        overlayId:   'boiler-chart-overlay',
+        color:       '#e3b341',
+        colorBg:     'rgba(227,179,65,0.08)',
+        maxHours:    168,
+        defaultHours:6,
+    }
+};
+
+const CHART_MIN_VIEW = 10;
+
+const chartState = {
+    street: { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
+              loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 },
+    boiler: { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
+              loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 }
+};
+let _activeTouchKey = null;
+let _touchState     = null;
 
 function openChartOverlay() {
-    const ov = document.getElementById('chart-overlay');
+    _openChart('street');
+}
+function openBoilerChartOverlay() {
+    _openChart('boiler');
+}
+function _openChart(key) {
+    const cfg = CHART_CFG[key];
+    const ov  = document.getElementById(cfg.overlayId);
     if (!ov) return;
     ov.style.display = 'flex';
     setTimeout(() => ov.classList.add('active'), 10);
-    // Загружаем 6ч по умолчанию
-    loadStreetChart(6, document.querySelector('.chart-period-active'));
+    chartSetPeriod(key, cfg.defaultHours,
+        ov.querySelector('.chart-period-active') ||
+        ov.querySelectorAll('.chart-period-btn')[2]);
 }
 
-function closeChartOverlay() {
-    const ov = document.getElementById('chart-overlay');
+function closeChartOverlay(key) {
+    const cfg = CHART_CFG[key];
+    const ov  = document.getElementById(cfg.overlayId);
     if (!ov) return;
     ov.classList.remove('active');
     setTimeout(() => { ov.style.display = 'none'; }, 500);
-    if (streetChart) { streetChart.destroy(); streetChart = null; }
+    const s = chartState[key];
+    if (s.chart) { s.chart.destroy(); s.chart = null; }
+    _chartDetachTouch(key);
+    s.allTs = []; s.allVals = [];
+    s.loadedFrom = null; s.loadedTo = null;
 }
 
-async function loadStreetChart(hours, btn) {
-    // Подсветка кнопок
-    document.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('chart-period-active'));
+function chartSetPeriod(key, hours, btn) {
+    const ov = document.getElementById(CHART_CFG[key].overlayId);
+    ov.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('chart-period-active'));
     if (btn) btn.classList.add('chart-period-active');
+    chartState[key].currentHours = hours;
+    const s = chartState[key];
+    s.allTs = []; s.allVals = [];
+    s.loadedFrom = null; s.loadedTo = null;
+    _chartLoad(key, Date.now() - hours * 3600000, Date.now(), true);
+}
 
-    const loadEl = document.getElementById('chart_loading');
-    const errEl  = document.getElementById('chart_error');
+async function _chartLoad(key, fromMs, toMs, resetView) {
+    const cfg = CHART_CFG[key];
+    const s   = chartState[key];
+    if (s.loading) return;
+    s.loading = true;
+
+    const loadEl = document.getElementById(cfg.loadingId);
+    const errEl  = document.getElementById(cfg.errorId);
     if (loadEl) loadEl.style.display = 'block';
     if (errEl)  errEl.style.display  = 'none';
 
-    const startTime = new Date(Date.now() - hours * 3600 * 1000).toISOString();
+    const startISO = new Date(fromMs).toISOString();
+    const endISO   = new Date(toMs).toISOString();
 
     try {
         const resp = await fetch(
-            `${HA_URL}/api/history/period/${startTime}?filter_entity_id=${HA_ENTITY}&minimal_response=true`,
+            `${HA_URL}/api/history/period/${startISO}?end_time=${endISO}&filter_entity_id=${cfg.entity}&minimal_response=true`,
             { headers: { 'Authorization': `Bearer ${HA_TOKEN}`, 'Content-Type': 'application/json' } }
         );
-
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 
-        const data = await resp.json();
+        const data    = await resp.json();
         const history = data[0];
-
         if (!history || history.length === 0) throw new Error('Нет данных');
 
-        const labels = history.map(e => {
-            const d = new Date(e.last_changed);
-            return d.getHours() + ':' + d.getMinutes().toString().padStart(2, '0');
-        });
-        const values = history
-            .map(e => parseFloat(e.state))
-            .map(v => isNaN(v) ? null : v);
+        const newTs   = history.map(e => new Date(e.last_changed).getTime());
+        const newVals = history.map(e => { const v = parseFloat(e.state); return isNaN(v) ? null : v; });
 
-        // Последнее не-null значение
-        const lastVal = [...values].reverse().find(v => v !== null);
-        const lastEl = document.getElementById('chart_last_val');
+        if (resetView || s.allTs.length === 0) {
+            s.allTs   = newTs;
+            s.allVals = newVals;
+            s.loadedFrom = fromMs;
+            s.loadedTo   = toMs;
+            s.viewStart  = 0;
+            s.viewSize   = s.allTs.length;
+        } else {
+            if (fromMs < s.loadedFrom) {
+                const cutIdx = newTs.findIndex(t => t >= s.loadedFrom);
+                const prependTs   = cutIdx > 0 ? newTs.slice(0, cutIdx)   : newTs;
+                const prependVals = cutIdx > 0 ? newVals.slice(0, cutIdx) : newVals;
+                const prevLen = s.allTs.length;
+                s.allTs   = [...prependTs,   ...s.allTs];
+                s.allVals = [...prependVals, ...s.allVals];
+                s.loadedFrom  = fromMs;
+                s.viewStart += (s.allTs.length - prevLen);
+            }
+        }
+
+        const lastVal = [...s.allVals].reverse().find(v => v !== null);
+        const lastEl  = document.getElementById(cfg.lastValId);
         if (lastEl && lastVal !== undefined) lastEl.innerText = lastVal.toFixed(1) + '°C';
 
-        renderStreetChart(labels, values);
+        _chartRender(key);
+        if (resetView) _chartAttachTouch(key);
 
     } catch (err) {
-        console.error('Chart error:', err);
-        if (errEl) {
-            errEl.style.display = 'block';
-            errEl.innerText = 'Ошибка загрузки\n' + err.message;
-        }
+        console.error(`Chart [${key}] error:`, err);
+        if (errEl) { errEl.style.display = 'block'; errEl.innerText = 'Ошибка загрузки\n' + err.message; }
     } finally {
+        s.loading = false;
         if (loadEl) loadEl.style.display = 'none';
     }
 }
 
-function renderStreetChart(labels, values) {
-    const ctx = document.getElementById('streetTempChart');
+function _chartCheckLazyLoad(key) {
+    const s   = chartState[key];
+    const cfg = CHART_CFG[key];
+    if (s.loading || !s.loadedFrom) return;
+
+    const EDGE = Math.max(10, Math.round(s.viewSize * 0.15));
+
+    if (s.viewStart <= EDGE) {
+        const canGoBack = s.loadedFrom > Date.now() - cfg.maxHours * 3600000;
+        if (canGoBack) {
+            const chunkMs = s.currentHours * 3600000;
+            const newFrom = Math.max(s.loadedFrom - chunkMs, Date.now() - cfg.maxHours * 3600000);
+            if (newFrom < s.loadedFrom) {
+                _chartLoad(key, newFrom, s.loadedFrom, false);
+            }
+        }
+    }
+}
+
+function _chartRender(key) {
+    const cfg = CHART_CFG[key];
+    const s   = chartState[key];
+    const ctx = document.getElementById(cfg.canvasId);
     if (!ctx) return;
 
-    if (streetChart) { streetChart.destroy(); streetChart = null; }
+    const end    = Math.min(s.viewStart + s.viewSize, s.allTs.length);
+    const tsSlice = s.allTs.slice(s.viewStart, end);
+    const labels  = tsSlice.map(ts => {
+        const d = new Date(ts);
+        return d.getDate() !== new Date(s.allTs[s.allTs.length - 1]).getDate()
+            ? `${d.getDate()}.${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`
+            : `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+    });
+    const values  = s.allVals.slice(s.viewStart, end);
 
-    streetChart = new Chart(ctx, {
+    if (s.chart) { s.chart.destroy(); s.chart = null; }
+
+    s.chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
             datasets: [{
-                label: 'Температура',
                 data: values,
-                borderColor: '#58a6ff',
-                backgroundColor: 'rgba(88,166,255,0.08)',
+                borderColor: cfg.color,
+                backgroundColor: cfg.colorBg,
                 borderWidth: 2,
                 fill: true,
                 tension: 0.4,
-                pointRadius: labels.length > 60 ? 0 : 2,
+                pointRadius: labels.length > 80 ? 0 : 2,
                 spanGaps: true,
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: { duration: 400 },
+            animation: { duration: 120 },
             plugins: { legend: { display: false } },
             scales: {
-                y: {
-                    grid: { color: '#21262d' },
-                    ticks: { color: '#8b949e', font: { size: 11 } }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        color: '#8b949e',
-                        maxRotation: 0,
-                        autoSkip: true,
-                        maxTicksLimit: 7,
-                        font: { size: 11 }
-                    }
-                }
+                y: { grid: { color: '#21262d' }, ticks: { color: '#8b949e', font: { size: 11 } } },
+                x: { grid: { display: false },
+                     ticks: { color: '#8b949e', maxRotation: 0, autoSkip: true, maxTicksLimit: 6, font: { size: 10 } } }
             }
         }
     });
 }
 
+function _chartAttachTouch(key) {
+    _chartDetachTouch(key);
+    const canvas = document.getElementById(CHART_CFG[key].canvasId);
+    if (!canvas) return;
+    _activeTouchKey = key;
+    canvas.addEventListener('touchstart', _onTouchStart, { passive: false });
+    canvas.addEventListener('touchmove',  _onTouchMove,  { passive: false });
+    canvas.addEventListener('touchend',   _onTouchEnd,   { passive: false });
+}
+function _chartDetachTouch(key) {
+    const id = key ? CHART_CFG[key]?.canvasId : null;
+    ['streetTempChart','boilerTempChart'].forEach(cid => {
+        if (!id || cid === id) {
+            const c = document.getElementById(cid);
+            if (c) {
+                c.removeEventListener('touchstart', _onTouchStart);
+                c.removeEventListener('touchmove',  _onTouchMove);
+                c.removeEventListener('touchend',   _onTouchEnd);
+            }
+        }
+    });
+    if (!id) _activeTouchKey = null;
+    _touchState = null;
+}
+
+function _getTouchDist(t) {
+    const dx = t[0].clientX - t[1].clientX, dy = t[0].clientY - t[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+}
+
+function _onTouchStart(e) {
+    e.preventDefault();
+    const key = _activeTouchKey;
+    if (!key) return;
+    const s = chartState[key];
+    if (e.touches.length === 1) {
+        _touchState = { mode: 'pan', startX: e.touches[0].clientX, startView: s.viewStart };
+    } else if (e.touches.length === 2) {
+        _touchState = {
+            mode: 'zoom', startDist: _getTouchDist(e.touches),
+            startSize: s.viewSize,
+            startX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            startView: s.viewStart
+        };
+    }
+}
+
+function _onTouchMove(e) {
+    e.preventDefault();
+    const key = _activeTouchKey;
+    if (!key || !_touchState) return;
+    const s     = chartState[key];
+    const total = s.allTs.length;
+
+    if (_touchState.mode === 'pan' && e.touches.length === 1) {
+        const canvas  = e.target;
+        const pxPerPt = canvas.offsetWidth / s.viewSize;
+        const dIdx    = Math.round(-(e.touches[0].clientX - _touchState.startX) / pxPerPt);
+        let newStart  = Math.max(0, Math.min(_touchState.startView + dIdx, total - s.viewSize));
+        if (newStart !== s.viewStart) {
+            s.viewStart = newStart;
+            _chartRender(key);
+            _chartCheckLazyLoad(key);
+        }
+    } else if (_touchState.mode === 'zoom' && e.touches.length === 2) {
+        const ratio   = _touchState.startDist / _getTouchDist(e.touches);
+        let newSize   = Math.round(_touchState.startSize * ratio);
+        newSize       = Math.max(CHART_MIN_VIEW, Math.min(newSize, total));
+        const canvas  = e.target;
+        const midX    = (_touchState.startX - canvas.getBoundingClientRect().left) / canvas.offsetWidth;
+        const midIdx  = Math.round(_touchState.startView + midX * _touchState.startSize);
+        let newStart  = Math.max(0, Math.min(Math.round(midIdx - midX * newSize), total - newSize));
+        if (newSize !== s.viewSize || newStart !== s.viewStart) {
+            s.viewSize  = newSize;
+            s.viewStart = newStart;
+            _chartRender(key);
+            _chartCheckLazyLoad(key);
+        }
+    }
+}
+
+function _onTouchEnd(e) {
+    e.preventDefault();
+    if (e.touches.length === 0) _touchState = null;
+    else if (e.touches.length === 1 && _touchState?.mode === 'zoom') {
+        const key = _activeTouchKey;
+        if (key) _touchState = { mode: 'pan', startX: e.touches[0].clientX, startView: chartState[key].viewStart };
+    }
+}
 
 function setFanSpeed(speed) {
-    if (isDemoMode) { updateFanSpeedButtons(speed); return; }
     send('dom/Vityjka1', speed);
     updateFanSpeedButtons(speed);
 }
@@ -736,7 +982,6 @@ function updateFanSpeedButtons(speed) {
 }
 
 function setHallFanSpeed(speed) {
-    if (isDemoMode) { updateHallFanSpeedButtons(speed); return; }
     send('dom/Pritok1', speed);
     updateHallFanSpeedButtons(speed);
 }
@@ -748,29 +993,19 @@ function updateHallFanSpeedButtons(speed) {
     });
 }
 
-// =====================================================================
-// ДЕТСКАЯ — ЦЕЛЕВАЯ ТЕМПЕРАТУРА
-// =====================================================================
 function changeDetTargetTemp(delta) {
     let newTemp = Math.min(30, Math.max(15, parseFloat(states.det_zad) + delta));
-    if (isDemoMode) { states.det_zad = newTemp; setText('l_det_zad', newTemp.toFixed(1)); return; }
     send('dom/tempMotzad', newTemp.toFixed(1));
     states.det_zad = newTemp;
     setText('l_det_zad', newTemp.toFixed(1));
 }
 
-// =====================================================================
-// ШТОРЫ
-// =====================================================================
 function updateCurtainVisual(val) {
     const move = (100 - parseInt(val)) * 0.9;
     if (DOM['curt-l']) DOM['curt-l'].style.transform = `translateX(-${move}%)`;
     if (DOM['curt-r']) DOM['curt-r'].style.transform = `translateX(${move}%)`;
 }
 
-// =====================================================================
-// ОКНА / ДВЕРИ
-// =====================================================================
 function updateWindowStatus(textId, val, tempId) {
     const statusTxt = document.getElementById(textId);
     const open = val == '1';
@@ -788,10 +1023,6 @@ function updateDoorStatus(textId, val, tempId) {
     const ov = document.getElementById(tempId + '_ov');
     if (ov) ov.classList.toggle('temp-pulse', open);
 }
-
-// =====================================================================
-// ОХРАНА
-// =====================================================================
 
 const sensorBlockMap = {
     'sensor_hall_window':    'sensor_block_hall',
@@ -811,8 +1042,6 @@ function toggleSecurityMode() {
 
 function updateSecurityDisplay() {
     const armed = !!states.security_mode;
-
-    // Щит на карточке охраны
     const shieldSvg = document.getElementById('card_shield_svg');
     if (shieldSvg) {
         const paths = shieldSvg.querySelectorAll('path');
@@ -826,7 +1055,6 @@ function updateSecurityDisplay() {
                 p.style.fill = armed ? 'rgba(35,134,54,0.12)' : 'rgba(88,166,255,0.08)';
             }
         });
-        // Галочка
         const check = document.getElementById('shield_check');
         if (check) {
             check.style.stroke  = color;
@@ -834,8 +1062,6 @@ function updateSecurityDisplay() {
         }
         shieldSvg.style.filter = glow;
     }
-
-    // Кнопка в оверлее
     const btn = document.getElementById('sw_security');
     if (btn) {
         btn.innerText      = armed ? 'НА ОХРАНЕ' : 'СНЯТА С ОХРАНЫ';
@@ -849,27 +1075,21 @@ function updateSecurityDisplay() {
 function updateSecuritySensor(statusElemId, value) {
     const statusEl = document.getElementById(statusElemId);
     const open = parseInt(value) === 1;
-
     if (statusEl) {
         statusEl.innerText   = open ? 'ОТКРЫТО' : 'ЗАКРЫТО';
         statusEl.className   = 'sensor-status ' + (open ? 'open-st' : 'closed');
     }
-
     const blockId = sensorBlockMap[statusElemId];
     const block   = document.getElementById(blockId);
     if (block) block.classList.toggle('open', open);
 }
 
-// =====================================================================
-// СЕРВЕР
-// =====================================================================
 function updateServerBar(valId, barId, value, color) {
     const pct = Math.min(100, Math.max(0, parseFloat(value) || 0));
     setText(valId, Math.round(pct));
     const bar = DOM[barId] || document.getElementById(barId);
     if (bar) {
         bar.style.width = pct + '%';
-        // Меняем цвет бара при высокой нагрузке (>85%)
         if (pct > 85)      bar.style.background = 'var(--off)';
         else if (pct > 65) bar.style.background = '#e3b341';
         else               bar.style.background = color;
@@ -884,24 +1104,17 @@ function updateServerTemp(value) {
     }
 }
 
-// =====================================================================
-// КАРТОЧКА ДОМ — СРЕДНИЕ ЗНАЧЕНИЯ
-// =====================================================================
 function updateHomeCardAverage() {
     const tHall = parseFloat(DOM['t_hall']?.innerText || 0);
     const tBed  = parseFloat(DOM['t_bed']?.innerText  || 0);
     const tDet  = parseFloat(DOM['t_det']?.innerText  || 0);
     setText('t_home', ((tHall + tBed + tDet) / 3).toFixed(1));
-
     const hHall = parseFloat(DOM['h_hall']?.innerText || 0);
     const hBed  = parseFloat(DOM['h_bed']?.innerText  || 0);
     const hDet  = parseFloat(DOM['h_det']?.innerText  || 0);
     setText('h_home', Math.round((hHall + hBed + hDet) / 3));
 }
 
-// =====================================================================
-// ЧАСЫ
-// =====================================================================
 function updateClock() {
     const now = new Date();
     setText('clock-time', now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
@@ -909,40 +1122,233 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 
-// =====================================================================
-// ДЕМО-РЕЖИМ
-// =====================================================================
-function startDemoSimulation() {
-    const seed = {
-        't_water':'42.5','l_sp_dash':'55','pwr_val':'35%',
-        't_hall':'22.4','h_hall':'45','t_bed':'21.8','h_bed':'48',
-        't_det':'23.1','h_det':'42','t_kit':'24.2','h_kit':'52',
-        't_kit_ov':'24.2','h_kit_ov':'52','t_bath':'23.5','h_bath':'65',
-        't_bath_ov':'23.5','h_bath_ov':'65'
-    };
-    for (const [id, val] of Object.entries(seed)) { if (DOM[id]) DOM[id].innerText = val; }
+// ===== ФУНКЦИИ ДЛЯ ПОЛИВА И АНИМАЦИИ ДОЖДЯ =====
 
-    setInterval(() => {
-        if (!isDemoMode) return;
-        const r = (base, range) => (base + Math.random() * range).toFixed(1);
-        const ri = (base, range) => Math.floor(base + Math.random() * range);
-        setText('t_water', r(40, 5)); setText('t_hall', r(21, 4)); setText('h_hall', ri(40, 20));
-        setText('t_bed',   r(20, 4)); setText('h_bed',  ri(45, 15));
-        setText('t_det',   r(22, 4)); setText('h_det',  ri(35, 20));
-        setText('t_kit',   r(23, 5)); setText('h_kit',  ri(48, 20));
-        setText('t_kit_ov',r(23, 5)); setText('h_kit_ov', ri(48, 20));
-        setText('t_vod',   r(22, 5)); setText('h_bath', ri(60, 25));
-        setText('pwr_val', ri(0, 100) + '%');
-        updateHomeCardAverage();
-    }, 3000);
+let rainDrops = [];
+let rainAnimationActive = false;
+
+function createRaindrop() {
+    const container = document.getElementById('card-street');
+    if (!container) return;
+    
+    const drop = document.createElement('div');
+    drop.style.position = 'absolute';
+    drop.style.width = '2px';
+    drop.style.height = '2px';
+    drop.style.backgroundColor = '#58a6ff';
+    drop.style.borderRadius = '50%';
+    drop.style.top = '-5px';
+    drop.style.left = Math.random() * 100 + '%';
+    drop.style.opacity = '0.8';
+    drop.style.boxShadow = '0 0 3px rgba(88, 166, 255, 0.8)';
+    drop.style.pointerEvents = 'none';
+    drop.style.zIndex = '10';
+    
+    container.appendChild(drop);
+    
+    const dropObj = {
+        element: drop,
+        x: parseFloat(drop.style.left),
+        y: 0,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: Math.random() * 0.8 + 0.5
+    };
+    
+    rainDrops.push(dropObj);
 }
 
-// =====================================================================
+function updateRaindrops() {
+    rainDrops = rainDrops.filter(drop => {
+        drop.y += drop.vy;
+        drop.x += drop.vx;
+        drop.vx += (Math.random() - 0.5) * 0.1;
+        
+        drop.element.style.top = drop.y + 'px';
+        drop.element.style.left = drop.x + '%';
+        
+        if (drop.y > 150) {
+            drop.element.remove();
+            return false;
+        }
+        return true;
+    });
+}
+
+function animateRain() {
+    if (!rainAnimationActive) return;
+    if (Math.random() > 0.4) createRaindrop();
+    updateRaindrops();
+    requestAnimationFrame(animateRain);
+}
+
+function startRainAnimation() {
+    if (rainAnimationActive) return;
+    rainAnimationActive = true;
+    for (let i = 0; i < 50; i++) createRaindrop();
+    animateRain();
+}
+
+function stopRainAnimation() {
+    rainAnimationActive = false;
+    rainDrops.forEach(drop => drop.element.remove());
+    rainDrops = [];
+}
+
+function handleWateringToggle() {
+    const isWateringOn = states.watering_zone1 || states.watering_zone2;
+    if (isWateringOn && !rainAnimationActive) {
+        startRainAnimation();
+    } else if (!isWateringOn && rainAnimationActive) {
+        stopRainAnimation();
+    }
+}
+
+// ===== ФУНКЦИИ ДЛЯ ПРОГНОЗА ПОГОДЫ =====
+
+function getWeatherIcon(code, isDay) {
+    const iconMap = {
+        0: '☀️', // ясно
+        1: '🌤️', 2: '⛅', 3: '☁️', // облачно
+        45: '🌫️', 48: '🌫️', // туман
+        51: '🌧️', 53: '🌧️', 55: '🌧️', // морось
+        61: '🌧️', 63: '⛈️', 65: '⛈️', // дождь
+        71: '❄️', 73: '❄️', 75: '❄️', 77: '❄️', // снег
+        80: '🌧️', 81: '⛈️', 82: '⛈️', // ливни
+        85: '❄️', 86: '❄️', // ливневый снег
+        95: '⛈️', 96: '⛈️', 99: '⛈️' // гроза
+    };
+    return iconMap[code] || '🌡️';
+}
+
+function getWeatherDesc(code) {
+    const descMap = {
+        0: 'Ясно',
+        1: 'Облачно', 2: 'Облачно', 3: 'Облачно',
+        45: 'Туман', 48: 'Туман',
+        51: 'Морось', 53: 'Морось', 55: 'Морось',
+        61: 'Дождь', 63: 'Дождь', 65: 'Сильный дождь',
+        71: 'Снег', 73: 'Снег', 75: 'Снег', 77: 'Снег',
+        80: 'Ливни', 81: 'Ливни', 82: 'Сильный ливень',
+        85: 'Ливневый снег', 86: 'Ливневый снег',
+        95: 'Гроза', 96: 'Гроза с градом', 99: 'Гроза с градом'
+    };
+    return descMap[code] || 'Неизвестно';
+}
+
+async function openWeatherForecast() {
+    const overlay = document.getElementById('weather-overlay');
+    if (!overlay) return;
+    
+    overlay.style.display = 'flex';
+    setTimeout(() => overlay.classList.add('active'), 10);
+    
+    try {
+        // Асбест координаты: 60.39°N 63.45°E
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=60.39&longitude=63.45&current=temperature_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=Asia/Yekaterinburg&forecast_days=4');
+        
+        if (!response.ok) throw new Error('API Error');
+        const data = await response.json();
+        
+        // Текущая погода
+        const current = data.current;
+        
+        const tempEl = document.getElementById('weather_temp');
+        const iconEl = document.getElementById('weather_icon');
+        const descEl = document.getElementById('weather_desc');
+        const windEl = document.getElementById('weather_wind');
+        const rainEl = document.getElementById('weather_rain');
+        
+        if (tempEl) tempEl.textContent = Math.round(current.temperature_2m);
+        if (iconEl) iconEl.textContent = getWeatherIcon(current.weather_code, true);
+        const desc = getWeatherDesc(current.weather_code);
+        if (descEl) descEl.textContent = desc;
+        if (windEl) windEl.textContent = (current.wind_speed_10m / 3.6).toFixed(1);
+        if (rainEl) rainEl.textContent = Math.round(current.precipitation || 0);
+        
+        // Прогноз на 3 следующих дня (дни 1, 2, 3)
+        const forecastEl = document.getElementById('weather_forecast');
+        if (forecastEl) {
+            forecastEl.innerHTML = '';
+            
+            // Показываем дни 1, 2, 3 (следующие три дня после сегодня)
+            for (let i = 1; i <= 3; i++) {
+                const dayDate = data.daily.time[i];
+                const date = new Date(dayDate + 'T00:00:00');
+                
+                // День недели на русском
+                const daysRu = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+                const dayName = daysRu[date.getDay()];
+                const dayNum = date.getDate();
+                
+                const tempMax = Math.round(data.daily.temperature_2m_max[i]);
+                const tempMin = Math.round(data.daily.temperature_2m_min[i]);
+                const wind = (data.daily.wind_speed_10m_max[i] / 3.6).toFixed(1);
+                const rain = Math.round(data.daily.precipitation_probability_max[i]);
+                const icon = getWeatherIcon(data.daily.weather_code[i], true);
+                const desc = getWeatherDesc(data.daily.weather_code[i]);
+                
+                const forecastDiv = document.createElement('div');
+                forecastDiv.style.cssText = 'background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; border: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start;';
+                
+                forecastDiv.innerHTML = `
+                    <div style="font-size: 36px; line-height: 1; flex-shrink: 0;">${icon}</div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                            <div>
+                                <div style="font-size: 11px; color: #8b949e; font-weight: bold; letter-spacing: 0.5px;">${dayName} ${dayNum}</div>
+                                <div style="font-size: 12px; color: #c9d1d9; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-top: 2px;">${desc}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 24px; font-weight: bold; color: #58a6ff; line-height: 1;">${tempMax}°/${tempMin}°</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 11px; color: #c9d1d9; border-top: 1px solid rgba(0,0,0,0.3); padding-top: 6px; margin-top: 6px;">
+                            Ветер: <span style="color: #a5d6ff; font-weight: bold;">${wind}</span> м/с | Осадки: <span style="color: #a5d6ff; font-weight: bold;">${rain}%</span>
+                        </div>
+                    </div>
+                `;
+                
+                forecastEl.appendChild(forecastDiv);
+            }
+        }
+    } catch (error) {
+        console.error('Weather error:', error);
+        const forecastEl = document.getElementById('weather_forecast');
+        if (forecastEl) {
+            forecastEl.innerHTML = '<div style="color:#da3633;text-align:center;padding:20px;font-size:12px;">Ошибка при загрузке прогноза</div>';
+        }
+    }
+}
+
+function closeWeatherForecast() {
+    const overlay = document.getElementById('weather-overlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.style.display = 'none', 500);
+    }
+}
+
+// Периодическая проверка полива
+setInterval(() => {
+    const isWateringOn = states.watering_zone1 || states.watering_zone2;
+    if (isWateringOn && !rainAnimationActive) startRainAnimation();
+    else if (!isWateringOn && rainAnimationActive) stopRainAnimation();
+}, 500);
+
+// Периодическое обновление панели контроля
+setInterval(() => {
+    updateControlPanel();
+}, 2000);
+
 // ИНИЦИАЛИЗАЦИЯ
-// =====================================================================
 window.addEventListener('DOMContentLoaded', () => {
     initDOMCache();
     updateClock();
+    connect();
+    updateControlPanel();
+    addControlLog(`🚀 Приложение запущено, версия ${VERSION}`);
+    setText('ctrl_version', VERSION);
+    setText('ctrl_host', `${cfg.h}:${cfg.p}`);
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

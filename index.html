@@ -10,37 +10,21 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/553/553376.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <!-- Этап 1: Стили вынесены в отдельный файл -->
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-    <!-- ==================== ЭКРАН АВТОРИЗАЦИИ ==================== -->
-    <div id="auth-screen">
-        <div class="auth-container">
-            <i class="fa-solid fa-house-chimney blue-house"></i>
-            <div class="fazenda-badge">ФАЗЕНДА</div>
-            <input type="password" id="passInput" placeholder="ПАРОЛЬ">
-            <button class="enter-btn" onclick="checkPass()">ВОЙТИ</button>
-        </div>
-    </div>
-
-    <!-- ==================== КОНТЕНТ ПРИЛОЖЕНИЯ ==================== -->
-    <div id="app-content">
-        <!-- КАРТОЧКА ЧАСОВ (фиксированная, по центру вверху) -->
+    <div id="app-content" style="display:flex;">
         <div id="clock-card" class="clock-card">
             <div id="clock-time">00:00</div>
             <div id="clock-date">...</div>
-            <div id="demo-badge">ДЕМО-РЕЖИМ</div>
         </div>
 
-        <!-- ========== ГЛАВНАЯ СТРАНИЦА ========== -->
         <div id="main-screen" class="cards-grid" style="flex-direction: column; gap: 30px; max-width: 800px; padding-top: 110px;">
             <div id="cards-container" style="display: flex; gap: 30px; width: 100%; max-width: 800px; flex-wrap: wrap;">
 
-                <!-- КАРТОЧКА ДОМ -->
-                <div id="card-home" class="card" style="flex: 1; max-width: none; min-width: 250px;"
+                <div id="card-home" class="card" style="flex: 1; max-width: none; min-width: 250px; position:relative;"
                      onclick="showRoomsScreen()"
                      ontouchstart="handleTouchStart(event)"
                      ontouchend="handleTouchEnd(event)">
@@ -52,9 +36,23 @@
                             <div class="target-val"><span id="h_home">--</span>%</div>
                         </div>
                     </div>
+                    <div onclick="event.stopPropagation(); showTechScreen();"
+                         style="position:absolute; bottom:14px; right:14px; width:36px; height:36px;
+                                display:flex; align-items:center; justify-content:center;
+                                border-radius:50%; border:1px solid rgba(88,166,255,0.2);
+                                background:rgba(88,166,255,0.06); cursor:pointer;
+                                transition: border-color 0.2s, background 0.2s;"
+                         onmouseenter="this.style.borderColor='rgba(88,166,255,0.5)';this.style.background='rgba(88,166,255,0.15)'"
+                         onmouseleave="this.style.borderColor='rgba(88,166,255,0.2)';this.style.background='rgba(88,166,255,0.06)'"
+                         ontouchstart="event.stopPropagation(); this.style.background='rgba(88,166,255,0.2)'"
+                         ontouchend="event.stopPropagation(); this.style.background='rgba(88,166,255,0.06)'; showTechScreen();">
+                        <svg viewBox="0 0 24 24" style="width:18px;height:18px;" fill="none">
+                            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round"/>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </div>
                 </div>
 
-                <!-- КАРТОЧКА УЛИЦА -->
                 <div id="card-street" class="card" style="flex: 1; max-width: none; min-width: 250px;"
                      onclick="openOverlay('street-overlay')">
                     <h3>Улица</h3>
@@ -73,15 +71,11 @@
             </div>
         </div>
 
-        <!-- ========== ЭКРАН КОМНАТ — вынесен в body ========== -->
+    </div>
 
-    </div><!-- /app-content -->
-
-    <!-- ========== ЭКРАН КОМНАТ (вне app-content, не размывается) ========== -->
     <div id="rooms-screen" class="fullscreen-panel">
         <div class="cards-grid">
 
-                <!-- ЗАЛ -->
                 <div class="card" id="card-hall" onclick="openOverlay('hall-overlay')">
                     <div id="curtain-container" class="curtain-wrap">
                         <div id="curt-l" class="curtain-wing curtain-left"></div>
@@ -98,7 +92,6 @@
                     <div id="curt-label-dash" class="curt-label-dash">Шторы: --%</div>
                 </div>
 
-                <!-- СПАЛЬНЯ -->
                 <div class="card" id="card-bedroom" onclick="openOverlay('bedroom-overlay')">
                     <h3>Спальня</h3>
                     <div class="temp-row" style="margin-top: 25px;">
@@ -110,7 +103,6 @@
                     </div>
                 </div>
 
-                <!-- ДЕТСКАЯ -->
                 <div class="card" id="card-children" onclick="openOverlay('children-overlay')">
                     <h3>Детская</h3>
                     <div class="temp-row" style="margin-top: 25px;">
@@ -122,7 +114,6 @@
                     </div>
                 </div>
 
-                <!-- КУХНЯ -->
                 <div class="card" id="card-kitchen" onclick="openOverlay('kitchen-overlay')">
                     <h3>Кухня</h3>
                     <div class="temp-row" style="margin-top: 20px; align-items: center;">
@@ -143,7 +134,6 @@
                     <span id="t_kit" style="display:none;">--</span>
                 </div>
 
-                <!-- ВАННАЯ -->
                 <div class="card" id="card-bathroom" onclick="openOverlay('bathroom-overlay')">
                     <h3>Ванная</h3>
                     <div class="temp-row" style="margin-top: 25px;">
@@ -159,11 +149,9 @@
         <button class="close-btn" style="margin: 20px 0 30px;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ========== ТЕХНИЧЕСКИЙ ЭКРАН (вне app-content, не размывается) ========== -->
     <div id="tech-screen" class="fullscreen-panel">
         <div class="cards-grid">
 
-                <!-- КОТЕЛ -->
                 <div class="card" onclick="openOverlay('boiler-overlay')">
                     <h3>Котел</h3>
                     <div id="badge_auto"   class="mode-badge" style="color: var(--accent);">AUTO</div>
@@ -183,7 +171,6 @@
                     <div class="pwr-badge">ТЭН 1: <span id="pwr_val">--%</span></div>
                 </div>
 
-                <!-- ЭНЕРГОПОТРЕБЛЕНИЕ -->
                 <div class="card" onclick="openOverlay('energy-overlay')">
                     <h3>Энергопотребление</h3>
                     <div style="text-align: center; margin-top: 30px;">
@@ -205,7 +192,6 @@
                     </div>
                 </div>
 
-                <!-- ОХРАНА -->
                 <div class="card" id="card-security" onclick="openOverlay('security-overlay')" style="position:relative; overflow:hidden;">
                     <h3>Охрана</h3>
                     <div style="display:flex; justify-content:center; align-items:center; flex:1; margin-top:10px;">
@@ -217,50 +203,61 @@
                     </div>
                 </div>
 
-                <!-- СЕРВЕР -->
-                <div class="card" id="card-server">
+                <div class="card" id="card-server" onclick="openOverlay('server-overlay')" style="cursor:pointer;">
                     <h3>Сервер</h3>
-                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:14px;">
-
-                        <!-- CPU -->
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                                <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">CPU</span>
-                                <span style="font-size:16px; font-weight:200; color:#fff;"><span id="srv_cpu">--</span><span style="font-size:10px; color:#8b949e;">%</span></span>
+                    <div style="display:flex; align-items:flex-start; gap:16px; margin-top:14px; flex:1;">
+                        <div style="display:flex; flex-direction:column; align-items:flex-start; flex-shrink:0;">
+                            <div style="font-size:10px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px;">CPU</div>
+                            <div class="val-display"><span id="srv_temp">--</span><span class="deg">°</span></div>
+                            <div style="margin-top:6px; font-size:9px; color:#8b949e; letter-spacing:1px; text-transform:uppercase;">Нагрузка</div>
+                            <div style="font-size:22px; font-weight:200; color:#a5d6ff; line-height:1;"><span id="srv_cpu">--</span><span style="font-size:12px; color:#8b949e;">%</span></div>
+                        </div>
+                        <div style="width:1px; background:var(--border); align-self:stretch; flex-shrink:0;"></div>
+                        <div style="flex:1; display:flex; flex-direction:column; gap:12px; justify-content:center; padding-top:4px;">
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                    <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">RAM</span>
+                                    <span style="font-size:12px; font-weight:200; color:#a5d6ff;">
+                                        <span id="srv_ram_used">--</span><span style="font-size:9px; color:#8b949e;">/</span><span id="srv_ram_total">--</span><span style="font-size:9px; color:#8b949e;"> ГБ</span>
+                                    </span>
+                                </div>
+                                <div style="height:8px; background:#21262d; border-radius:4px; overflow:hidden;">
+                                    <div id="srv_ram_bar" style="height:100%; width:0%; background:#a5d6ff; border-radius:4px; transition:width 0.6s ease;"></div>
+                                </div>
+                                <div style="font-size:9px; color:#8b949e; text-align:right;"><span id="srv_ram"></span></div>
                             </div>
-                            <div style="height:4px; background:#21262d; border-radius:2px; overflow:hidden;">
-                                <div id="srv_cpu_bar" style="height:100%; width:0%; background:var(--accent); border-radius:2px; transition:width 0.6s ease;"></div>
+                            <div style="display:flex; flex-direction:column; gap:5px;">
+                                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                                    <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">ДИСК</span>
+                                    <span style="font-size:12px; font-weight:200; color:#e3b341;">
+                                        <span id="srv_disk_used">--</span><span style="font-size:9px; color:#8b949e;">/</span><span id="srv_disk_total">--</span><span style="font-size:9px; color:#8b949e;"> ГБ</span>
+                                    </span>
+                                </div>
+                                <div style="height:8px; background:#21262d; border-radius:4px; overflow:hidden;">
+                                    <div id="srv_disk_bar" style="height:100%; width:0%; background:#e3b341; border-radius:4px; transition:width 0.6s ease;"></div>
+                                </div>
+                                <div style="font-size:9px; color:#8b949e; text-align:right;"><span id="srv_disk"></span></div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <!-- RAM -->
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                                <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">RAM</span>
-                                <span style="font-size:16px; font-weight:200; color:#fff;"><span id="srv_ram">--</span><span style="font-size:10px; color:#8b949e;">%</span></span>
-                            </div>
-                            <div style="height:4px; background:#21262d; border-radius:2px; overflow:hidden;">
-                                <div id="srv_ram_bar" style="height:100%; width:0%; background:#a5d6ff; border-radius:2px; transition:width 0.6s ease;"></div>
-                            </div>
+                <!-- НОВАЯ КАРТОЧКА КОНТРОЛЬ -->
+                <div class="card" id="card-control" onclick="openOverlay('control-overlay')" style="cursor:pointer;">
+                    <h3>Контроль</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <span style="font-size: 10px; color: #8b949e;">MQTT</span>
+                            <span id="ctrl_mqtt_status" style="font-size: 14px; font-weight: 500; color: #da3633;">● OFFLINE</span>
                         </div>
-
-                        <!-- ДИСК -->
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                                <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">ДИСК</span>
-                                <span style="font-size:16px; font-weight:200; color:#fff;"><span id="srv_disk">--</span><span style="font-size:10px; color:#8b949e;">%</span></span>
-                            </div>
-                            <div style="height:4px; background:#21262d; border-radius:2px; overflow:hidden;">
-                                <div id="srv_disk_bar" style="height:100%; width:0%; background:#e3b341; border-radius:2px; transition:width 0.6s ease;"></div>
-                            </div>
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <span style="font-size: 10px; color: #8b949e;">PWA</span>
+                            <span id="ctrl_pwa_status" style="font-size: 14px; font-weight: 500; color: #e3b341;">⏺ UNKNOWN</span>
                         </div>
-
-                        <!-- ТЕМПЕРАТУРА CPU -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding-top:10px; border-top:1px solid var(--border);">
-                            <span style="font-size:9px; color:#8b949e; letter-spacing:1.5px; text-transform:uppercase;">ТЕМП. CPU</span>
-                            <span style="font-size:24px; font-weight:200; color:var(--accent);"><span id="srv_temp">--</span><span style="font-size:13px;">°</span></span>
+                        <div style="height: 4px; background: #21262d; border-radius: 2px; margin: 6px 0;">
+                            <div id="ctrl_heartbeat" style="width: 0%; height: 100%; background: #58a6ff; border-radius: 2px;"></div>
                         </div>
-
+                        <div style="font-size: 9px; color: #8b949e; text-align: center; letter-spacing: 0.5px;">последнее сообщение: <span id="ctrl_last_msg">—</span></div>
                     </div>
                 </div>
 
@@ -268,15 +265,18 @@
         <button class="close-btn" style="margin: 20px 0 30px;" onclick="showMainScreen()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- app-content уже закрыт выше -->
-
     <!-- ==================== ОВЕРЛЕЙ КОТЛА ==================== -->
     <div id="boiler-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
                 <div style="display: flex; align-items: flex-start; gap: 15px; margin-bottom: 30px; margin-top: 15px;">
                     <div style="text-align: center;">
-                        <div style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1;"><span id="t_water_left">--</span>°</div>
+                        <div onclick="openBoilerChartOverlay()" style="font-size: 48px; font-weight: 200; color: #fff; line-height: 1; cursor:pointer; position:relative;">
+                            <span id="t_water_left">--</span>°
+                            <svg viewBox="0 0 16 16" style="width:11px;height:11px;position:absolute;top:4px;right:-14px;opacity:0.45;" fill="none">
+                                <polyline points="1,12 5,6 9,9 15,2" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
                     </div>
                     <div style="width: 1px; background: var(--border); height: 60px;"></div>
                     <div style="text-align: left; padding-top: 5px;">
@@ -322,7 +322,6 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ ЗАЛА ==================== -->
     <div id="hall-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
@@ -372,7 +371,6 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ СПАЛЬНИ ==================== -->
     <div id="bedroom-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: center;">
@@ -426,7 +424,6 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ ДЕТСКОЙ ==================== -->
     <div id="children-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: center;">
@@ -481,11 +478,9 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ КУХНИ ==================== -->
     <div id="kitchen-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start; gap: 0;">
-                <!-- Блок: темп + иконка по центру -->
                 <div style="display:flex; align-items:center; justify-content:center; gap:16px; padding: 18px 0 12px;">
                     <div class="val-display"><span id="t_chay_ov">--</span><span class="deg">°</span></div>
                     <svg id="chay_icon_ov" viewBox="0 0 44 80" style="width:46px;height:86px;opacity:0.85;transition:filter 0.4s;" fill="none">
@@ -499,7 +494,6 @@
                         <rect x="18" y="52" width="8" height="3" rx="1.5" fill="#58a6ff" opacity="0.65"/>
                     </svg>
                 </div>
-                <!-- Кнопка сразу под чайником -->
                 <button id="sw_chay_stat" style="width:100%; padding:10px; background:#30363d; border:1px solid var(--border); color:#c9d1d9; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; margin-bottom:12px; transition:0.3s;" onclick="send('dom/statChay', states.chay_stat?0:1)">ВЫКЛЮЧЕН</button>
                 <span id="t_kit_ov" style="display:none;">--</span>
                 <div id="window-status-text-kit" class="status-row-box" style="margin-top:4px;">ОКНО ЗАКРЫТО</div>
@@ -539,7 +533,6 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ ВАННОЙ ==================== -->
     <div id="bathroom-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
@@ -592,7 +585,6 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ ЭНЕРГОПОТРЕБЛЕНИЯ ==================== -->
     <div id="energy-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
@@ -631,67 +623,52 @@
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ ОХРАНЫ ==================== -->
     <div id="security-overlay" class="overlay">
         <div class="unified-card" style="flex-direction: column; max-width: 500px; align-items: center;">
-
-            <!-- ЗАГОЛОВОК -->
             <div style="font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; align-self: flex-start;">ОХРАНА И КОНТРОЛЬ ПЕРИМЕТРА</div>
-
-            <!-- КНОПКА КАК У ВОДОНАГРЕВАТЕЛЯ -->
             <button id="sw_security" style="width: 100%; padding: 14px; background: #30363d; border: 1px solid var(--border); color: #c9d1d9; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; margin-bottom: 24px; transition: 0.3s; letter-spacing: 1px;" onclick="toggleSecurityMode()">СНЯТА С ОХРАНЫ</button>
-
-            <!-- МАТРИЦА ДАТЧИКОВ 3×2 -->
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; width: 100%;">
-
                 <div id="sensor_block_hall" class="sensor-block">
                     <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
                     <div class="sensor-name">Зал (Окно)</div>
                     <div id="sensor_hall_window" class="sensor-status closed">ЗАКРЫТО</div>
                     <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-
                 <div id="sensor_block_bed" class="sensor-block">
                     <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
                     <div class="sensor-name">Спальня (Окно)</div>
                     <div id="sensor_bed_window" class="sensor-status closed">ЗАКРЫТО</div>
                     <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-
                 <div id="sensor_block_kids" class="sensor-block">
                     <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
                     <div class="sensor-name">Детская (Окно)</div>
                     <div id="sensor_kids_window" class="sensor-status closed">ЗАКРЫТО</div>
                     <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-
                 <div id="sensor_block_kitchen_win" class="sensor-block">
                     <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="12" y1="2" x2="12" y2="22" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="1.5"/></svg>
                     <div class="sensor-name">Кухня (Окно)</div>
                     <div id="sensor_kitchen_window" class="sensor-status closed">ЗАКРЫТО</div>
                     <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-
                 <div id="sensor_block_kitchen_door" class="sensor-block">
                     <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="3" y="1" width="14" height="22" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor"/></svg>
                     <div class="sensor-name">Кухня (Дверь)</div>
                     <div id="sensor_kitchen_door" class="sensor-status closed">ЗАКРЫТО</div>
                     <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-
                 <div id="sensor_block_front" class="sensor-block">
                     <svg class="sensor-svg-icon" viewBox="0 0 24 24"><rect x="3" y="1" width="14" height="22" rx="1.5" stroke="currentColor" stroke-width="1.5" fill="none"/><circle cx="14.5" cy="12" r="1.2" fill="currentColor"/></svg>
                     <div class="sensor-name">Входная дверь</div>
                     <div id="sensor_front_door" class="sensor-status closed">ЗАКРЫТО</div>
                     <svg class="sensor-shield-svg" viewBox="0 0 16 18"><path d="M8 1L1 4v5c0 4 3 7 7 8 4-1 7-4 7-8V4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
                 </div>
-
             </div>
         </div>
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ УЛИЦЫ ==================== -->
     <div id="street-overlay" class="overlay">
         <div class="unified-card">
             <div class="column" style="justify-content: flex-start;">
@@ -708,91 +685,261 @@
                         <div class="target-val"><span id="h_street_ov">--</span>%</div>
                     </div>
                 </div>
-                <div style="font-size: 12px; color: #c9d1d9; text-align: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border);">
+                <div style="font-size: 12px; color: #c9d1d9; text-align: center; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 12px;">
                     Давление: <span id="p_street_ov" style="color: #a5d6ff; font-weight: bold;">--</span> мм рт.ст.
                 </div>
+                <button onclick="openWeatherForecast()" style="width: 100%; padding: 12px; background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.3); border-radius: 12px; color: #58a6ff; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; letter-spacing: 1px;" onmouseenter="this.style.background='rgba(88,166,255,0.15)'; this.style.borderColor='rgba(88,166,255,0.5)'" onmouseleave="this.style.background='rgba(88,166,255,0.08)'; this.style.borderColor='rgba(88,166,255,0.3)'" ontouchstart="this.style.background='rgba(88,166,255,0.15)'" ontouchend="this.style.background='rgba(88,166,255,0.08)'">
+                    ПРОГНОЗ ПОГОДЫ
+                </button>
             </div>
             <div class="column-divider"></div>
             <div class="column" style="gap: 15px; justify-content: space-between;">
-                <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; border: 1px solid var(--border);">
-                    <h3 class="col-title" style="margin-top:0">ОСВЕЩЕНИЕ</h3>
-                    <div class="switch-row-box" style="padding: 10px 15px; margin-bottom: 10px; background: transparent; border: none;">
-                        <span class="label-inline">СВЕТ НА УЛИЦЕ</span>
-                        <button id="sw_street_light" class="toggle-btn" onclick="send('dom/svUlica', states.street_light?0:1)"></button>
-                    </div>
-                    <div class="switch-row-box" style="padding: 10px 15px; background: transparent; border: none;">
-                        <span class="label-inline">МАНГАЛ</span>
-                        <button id="sw_street_bbq" class="toggle-btn" onclick="send('dom/svMangal', states.street_bbq?0:1)"></button>
-                    </div>
-                </div>
-                <!-- Блок камеры -->
-                <div onclick="openCameraOverlay()" style="background: rgba(88,166,255,0.05); border: 1px solid rgba(88,166,255,0.25); border-radius: 15px; padding: 15px; cursor: pointer; display:flex; align-items:center; gap:12px; transition: background 0.2s;" onmousedown="this.style.background='rgba(88,166,255,0.12)'" onmouseup="this.style.background='rgba(88,166,255,0.05)'" ontouchstart="this.style.background='rgba(88,166,255,0.12)'" ontouchend="this.style.background='rgba(88,166,255,0.05)'">
+                <button onclick="openOverlay('street-light-overlay')" style="background: rgba(88,166,255,0.05); border: 1px solid rgba(88,166,255,0.25); border-radius: 15px; padding: 15px; cursor: pointer; display:flex; align-items:center; gap:12px; transition: background 0.2s;" onmousedown="this.style.background='rgba(88,166,255,0.12)'" onmouseup="this.style.background='rgba(88,166,255,0.05)'" ontouchstart="this.style.background='rgba(88,166,255,0.12)'" ontouchend="this.style.background='rgba(88,166,255,0.05)'">
+                    <svg viewBox="0 0 24 24" style="width:28px;height:28px;flex-shrink:0;" fill="none">
+                        <path d="M12 2v6m0 4v6M6.22 6.22l4.24 4.24m0 2.1l-4.24 4.24M17.78 6.22l-4.24 4.24m0 2.1l4.24 4.24M2 12h6m4 0h6" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div style="font-size:10px; color:var(--accent); font-weight:bold; letter-spacing:1.5px;">ОСВЕЩЕНИЕ</div>
+                </button>
+                <button onclick="openCameraOverlay()" style="background: rgba(88,166,255,0.05); border: 1px solid rgba(88,166,255,0.25); border-radius: 15px; padding: 15px; cursor: pointer; display:flex; align-items:center; gap:12px; transition: background 0.2s;" onmousedown="this.style.background='rgba(88,166,255,0.12)'" onmouseup="this.style.background='rgba(88,166,255,0.05)'" ontouchstart="this.style.background='rgba(88,166,255,0.12)'" ontouchend="this.style.background='rgba(88,166,255,0.05)'">
                     <svg viewBox="0 0 24 24" style="width:28px;height:28px;flex-shrink:0;" fill="none">
                         <rect x="1" y="5" width="16" height="13" rx="2" stroke="#58a6ff" stroke-width="1.8"/>
                         <path d="M17 9 L23 6 L23 18 L17 15 Z" stroke="#58a6ff" stroke-width="1.8" stroke-linejoin="round" fill="rgba(88,166,255,0.1)"/>
                         <circle cx="8" cy="11.5" r="2" stroke="#58a6ff" stroke-width="1.2"/>
                     </svg>
-                    <div>
-                        <div style="font-size:10px; color:var(--accent); font-weight:bold; letter-spacing:1.5px;">КАМЕРА</div>
-                        <div style="font-size:9px; color:#8b949e; margin-top:2px;">Нажмите для просмотра</div>
-                    </div>
-                </div>
+                    <div style="font-size:10px; color:var(--accent); font-weight:bold; letter-spacing:1.5px;">КАМЕРА</div>
+                </button>
+                <button onclick="openOverlay('street-watering-overlay')" style="background: rgba(88,166,255,0.05); border: 1px solid rgba(88,166,255,0.25); border-radius: 15px; padding: 15px; cursor: pointer; display:flex; align-items:center; gap:12px; transition: background 0.2s;" onmousedown="this.style.background='rgba(88,166,255,0.12)'" onmouseup="this.style.background='rgba(88,166,255,0.05)'" ontouchstart="this.style.background='rgba(88,166,255,0.12)'" ontouchend="this.style.background='rgba(88,166,255,0.05)'">
+                    <svg viewBox="0 0 24 24" style="width:28px;height:28px;flex-shrink:0;" fill="none">
+                        <path d="M12 2c-1 2-3 4-3 6 0 2.21 1.34 4 3 4s3-1.79 3-4c0-2-2-4-3-6z" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="rgba(88,166,255,0.1)"/>
+                        <path d="M6 8c-1 2-3 4-3 6 0 2.21 1.34 4 3 4s3-1.79 3-4c0-2-2-4-3-6z" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="rgba(88,166,255,0.1)"/>
+                        <path d="M18 8c-1 2-3 4-3 6 0 2.21 1.34 4 3 4s3-1.79 3-4c0-2-2-4-3-6z" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="rgba(88,166,255,0.1)"/>
+                        <line x1="2" y1="22" x2="22" y2="22" stroke="#58a6ff" stroke-width="1.8"/>
+                    </svg>
+                    <div style="font-size:10px; color:var(--accent); font-weight:bold; letter-spacing:1.5px;">ПОЛИВ</div>
+                </button>
             </div>
         </div>
         <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ КАМЕРЫ ==================== -->
-    <div id="camera-overlay" class="overlay" style="z-index:6000;">
-        <div class="unified-card" style="flex-direction:column; max-width:700px; padding:20px; gap:16px;">
-            <div style="font-size:10px; color:var(--accent); letter-spacing:2px; font-weight:bold;">КАМЕРА — УЛИЦА</div>
-            <div style="width:100%; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#000; aspect-ratio:1/1; position:relative;">
-                <img id="camera_feed" src="http://192.168.1.90:5000/api/axis_camera" style="width:100%; height:100%; object-fit:cover; display:block;"
-                     onerror="this.style.display='none'; document.getElementById('cam_err').style.display='flex'"/>
-                <div id="cam_err" style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:#8b949e;">
-                    <svg viewBox="0 0 24 24" style="width:40px;height:40px;" fill="none">
-                        <rect x="1" y="5" width="16" height="13" rx="2" stroke="#444" stroke-width="1.8"/>
-                        <path d="M17 9 L23 6 L23 18 L17 15 Z" stroke="#444" stroke-width="1.8" stroke-linejoin="round"/>
-                        <line x1="3" y1="3" x2="21" y2="21" stroke="#da3633" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span style="font-size:11px;">Камера недоступна</span>
+    <!-- STREET LIGHTING OVERLAY -->
+    <div id="street-light-overlay" class="overlay">
+        <div class="unified-card" style="flex-direction: column; max-width: 500px; padding: 28px; gap: 18px;">
+            <div style="font-size: 10px; color: var(--accent); letter-spacing: 2px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Управление освещением</div>
+            
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px; border: 1px solid var(--border);">
+                <div class="switch-row-box" style="padding: 0; background: transparent; border: none;">
+                    <span class="label-inline">СВЕТ НА УЛИЦЕ</span>
+                    <button id="sw_street_light" class="toggle-btn" onclick="send('dom/svUlica', states.street_light?0:1)"></button>
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px; border: 1px solid var(--border);">
+                <div class="switch-row-box" style="padding: 0; background: transparent; border: none;">
+                    <span class="label-inline">МАНГАЛ</span>
+                    <button id="sw_street_bbq" class="toggle-btn" onclick="send('dom/svMangal', states.street_bbq?0:1)"></button>
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px; border: 1px solid var(--border);">
+                <div class="switch-row-box" style="padding: 0; background: transparent; border: none;">
+                    <span class="label-inline">ГИРЛЯНДА</span>
+                    <button id="sw_street_garland" class="toggle-btn" onclick="send('dom/rozDom', states.street_garland?0:1)"></button>
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px; border: 1px solid var(--border);">
+                <div class="switch-row-box" style="padding: 0; background: transparent; border: none;">
+                    <span class="label-inline">ФОНАРИКИ</span>
+                    <button id="sw_street_lanterns" class="toggle-btn" onclick="send('dom/svFonar', states.street_lanterns?0:1)"></button>
+                </div>
+            </div>
+
+            <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <!-- STREET WATERING OVERLAY -->
+    <div id="street-watering-overlay" class="overlay">
+        <div class="unified-card" style="flex-direction: column; max-width: 500px; padding: 28px; gap: 18px;">
+            <div style="font-size: 10px; color: var(--accent); letter-spacing: 2px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px;">Управление поливом</div>
+            
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px; border: 1px solid var(--border);">
+                <div class="switch-row-box" style="padding: 0; background: transparent; border: none;">
+                    <span class="label-inline">ЗОНА 1</span>
+                    <button id="sw_watering_zone1" class="toggle-btn" onclick="send('dom/poliv1', states.watering_zone1?0:1); handleWateringToggle()"></button>
+                </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 18px; border: 1px solid var(--border);">
+                <div class="switch-row-box" style="padding: 0; background: transparent; border: none;">
+                    <span class="label-inline">ЗОНА 2</span>
+                    <button id="sw_watering_zone2" class="toggle-btn" onclick="send('dom/poliv2', states.watering_zone2?0:1); handleWateringToggle()"></button>
+                </div>
+            </div>
+
+            <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
+    <div id="camera-overlay" style="display:none; position:fixed; inset:0; z-index:7000; background:#000; flex-direction:column;">
+        <iframe id="camera_iframe" src="" style="flex:1; width:100%; border:none; display:block;"></iframe>
+        <button onclick="closeCameraOverlay()" style="position:fixed; bottom:24px; left:50%; transform:translateX(-50%); padding:14px 60px; background:var(--accent); border:none; color:#fff; border-radius:15px; font-weight:bold; font-size:14px; cursor:pointer; z-index:7001; letter-spacing:1px;">ЗАКРЫТЬ</button>
+    </div>
+
+    <!-- WEATHER FORECAST OVERLAY -->
+    <div id="weather-overlay" class="overlay">
+        <div class="unified-card">
+            <!-- LEFT SIDE - CURRENT WEATHER -->
+            <div class="column" style="justify-content: flex-start;">
+                <h3 class="col-title">АСБЕСТ</h3>
+                <div style="margin-top: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                        <span style="font-size: 48px; line-height: 1;" id="weather_icon">☀️</span>
+                        <div>
+                            <div style="font-size: 42px; font-weight: bold; color: #58a6ff; line-height: 1;" id="weather_temp">--</div>
+                            <div style="font-size: 10px; color: #a5d6ff; letter-spacing: 1px;">°C</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 13px; color: #c9d1d9; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;" id="weather_desc">Загрузка</div>
+                    <div style="font-size: 12px; color: #c9d1d9;">
+                        Ветер: <span id="weather_wind" style="color: #a5d6ff; font-weight: bold;">--</span> м/с | Осадки: <span id="weather_rain" style="color: #a5d6ff; font-weight: bold;">--</span>%
+                    </div>
+                </div>
+            </div>
+
+            <!-- DIVIDER -->
+            <div class="column-divider"></div>
+
+            <!-- RIGHT SIDE - 3 DAY FORECAST -->
+            <div class="column" style="justify-content: flex-start; gap: 12px;">
+                <h3 class="col-title">ПРОГНОЗ</h3>
+                <div id="weather_forecast" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Дни будут добавлены JS -->
                 </div>
             </div>
         </div>
-        <button class="close-btn" onclick="closeCameraOverlay()">ЗАКРЫТЬ</button>
+        <button class="close-btn" onclick="closeWeatherForecast()">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- ==================== ОВЕРЛЕЙ ГРАФИКА ТЕМПЕРАТУРЫ ==================== -->
     <div id="chart-overlay" class="overlay" style="z-index:6000; overflow-y:auto; padding:15px;">
         <div class="unified-card" style="flex-direction:column; max-width:650px; padding:20px; gap:14px;">
-
-            <!-- Заголовок + последнее значение -->
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-size:10px; color:var(--accent); letter-spacing:2px; font-weight:bold; text-transform:uppercase;">История температуры — Улица</div>
+                <div style="font-size:10px; color:var(--accent); letter-spacing:2px; font-weight:bold; text-transform:uppercase;">История — Улица</div>
                 <div id="chart_last_val" style="font-size:20px; font-weight:200; color:#fff;">--°C</div>
             </div>
-
-            <!-- Кнопки периода -->
             <div style="display:flex; gap:8px; justify-content:center;">
-                <button class="chart-period-btn" onclick="loadStreetChart(1, this)">1ч</button>
-                <button class="chart-period-btn" onclick="loadStreetChart(3, this)">3ч</button>
-                <button class="chart-period-btn chart-period-active" onclick="loadStreetChart(6, this)">6ч</button>
-                <button class="chart-period-btn" onclick="loadStreetChart(12, this)">12ч</button>
-                <button class="chart-period-btn" onclick="loadStreetChart(24, this)">24ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('street',1,this)">1ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('street',3,this)">3ч</button>
+                <button class="chart-period-btn chart-period-active" onclick="chartSetPeriod('street',6,this)">6ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('street',12,this)">12ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('street',24,this)">24ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('street',72,this)">3д</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('street',168,this)">7д</button>
             </div>
-
-            <!-- Canvas -->
-            <div style="position:relative; height:260px;">
-                <canvas id="streetTempChart"></canvas>
+            <div style="text-align:center; font-size:9px; color:#444; letter-spacing:1px;">↔ свайп — прокрутка · щипок — масштаб</div>
+            <div style="position:relative; height:260px; touch-action:none;">
+                <canvas id="streetTempChart" style="touch-action:none;"></canvas>
                 <div id="chart_loading" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#8b949e; font-size:12px; letter-spacing:1px;">ЗАГРУЗКА...</div>
                 <div id="chart_error"   style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--off); font-size:12px; letter-spacing:1px; text-align:center;"></div>
             </div>
-
         </div>
-        <button class="close-btn" onclick="closeChartOverlay()">ЗАКРЫТЬ</button>
+        <button class="close-btn" onclick="closeChartOverlay('street')">ЗАКРЫТЬ</button>
     </div>
 
-    <!-- Этап 1: Скрипты вынесены в отдельные файлы -->
+    <div id="boiler-chart-overlay" class="overlay" style="z-index:6000; overflow-y:auto; padding:15px;">
+        <div class="unified-card" style="flex-direction:column; max-width:650px; padding:20px; gap:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:10px; color:var(--accent); letter-spacing:2px; font-weight:bold; text-transform:uppercase;">История — Котёл</div>
+                <div id="boiler_chart_last_val" style="font-size:20px; font-weight:200; color:#fff;">--°C</div>
+            </div>
+            <div style="display:flex; gap:8px; justify-content:center;">
+                <button class="chart-period-btn" onclick="chartSetPeriod('boiler',1,this)">1ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('boiler',3,this)">3ч</button>
+                <button class="chart-period-btn chart-period-active" onclick="chartSetPeriod('boiler',6,this)">6ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('boiler',12,this)">12ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('boiler',24,this)">24ч</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('boiler',72,this)">3д</button>
+                <button class="chart-period-btn" onclick="chartSetPeriod('boiler',168,this)">7д</button>
+            </div>
+            <div style="text-align:center; font-size:9px; color:#444; letter-spacing:1px;">↔ свайп — прокрутка · щипок — масштаб</div>
+            <div style="position:relative; height:260px; touch-action:none;">
+                <canvas id="boilerTempChart" style="touch-action:none;"></canvas>
+                <div id="boiler_chart_loading" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#8b949e; font-size:12px; letter-spacing:1px;">ЗАГРУЗКА...</div>
+                <div id="boiler_chart_error"   style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--off); font-size:12px; letter-spacing:1px; text-align:center;"></div>
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeChartOverlay('boiler')">ЗАКРЫТЬ</button>
+    </div>
+
+    <div id="server-overlay" class="overlay" style="z-index:6000;">
+        <div class="unified-card" style="flex-direction:column; max-width:480px; padding:28px; gap:16px;">
+            <div style="font-size:10px; color:var(--accent); letter-spacing:2px; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Сервер — Сервисы</div>
+            <div onclick="openWebApp('http://192.168.1.74:8123')" class="server-app-btn">
+                <svg viewBox="0 0 24 24" style="width:26px;height:26px;flex-shrink:0;" fill="none"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" stroke="#58a6ff" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 21V12h6v9" stroke="#58a6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="9" r="1.5" fill="#58a6ff"/></svg>
+                <div><div style="font-size:13px; font-weight:bold; color:#fff;">Home Assistant</div><div style="font-size:10px; color:#8b949e;">Автоматизация умного дома</div></div>
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;margin-left:auto;opacity:0.35;" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+            <div onclick="openWebApp('http://192.168.1.120')" class="server-app-btn">
+                <svg viewBox="0 0 24 24" style="width:26px;height:26px;flex-shrink:0;" fill="none"><rect x="2" y="3" width="20" height="14" rx="2" stroke="#58a6ff" stroke-width="1.8"/><path d="M8 21h8M12 17v4" stroke="#58a6ff" stroke-width="1.8"/><path d="M7 8h4M7 11h6" stroke="#58a6ff" stroke-width="1.5"/><circle cx="17" cy="9.5" r="2" stroke="#58a6ff" stroke-width="1.5"/></svg>
+                <div><div style="font-size:13px; font-weight:bold; color:#fff;">Majordomo</div><div style="font-size:10px; color:#8b949e;">Система управления домом</div></div>
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;margin-left:auto;opacity:0.35;" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+            <div onclick="openWebApp('http://192.168.1.74:2283')" class="server-app-btn">
+                <svg viewBox="0 0 24 24" style="width:26px;height:26px;flex-shrink:0;" fill="none"><rect x="2" y="2" width="20" height="20" rx="3" stroke="#58a6ff" stroke-width="1.8"/><circle cx="8.5" cy="8.5" r="1.5" fill="#58a6ff"/><path d="M2 15l5-5 4 4 3-3 5 5" stroke="#58a6ff" stroke-width="1.8"/></svg>
+                <div><div style="font-size:13px; font-weight:bold; color:#fff;">Immich</div><div style="font-size:10px; color:#8b949e;">Галерея фото и видео</div></div>
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;margin-left:auto;opacity:0.35;" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+            <div onclick="openWebApp('http://192.168.1.74')" class="server-app-btn">
+                <svg viewBox="0 0 24 24" style="width:26px;height:26px;flex-shrink:0;" fill="none"><path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z" stroke="#58a6ff" stroke-width="1.8"/><line x1="9" y1="13" x2="15" y2="13" stroke="#58a6ff" stroke-width="1.5"/><line x1="9" y1="16" x2="13" y2="16" stroke="#58a6ff" stroke-width="1.5"/></svg>
+                <div><div style="font-size:13px; font-weight:bold; color:#fff;">Файлы</div><div style="font-size:10px; color:#8b949e;">Файловый менеджер</div></div>
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;margin-left:auto;opacity:0.35;" fill="none"><path d="M9 18l6-6-6-6" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+        </div>
+        <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+    </div>
+
+    <!-- ==================== НОВЫЙ ОВЕРЛЕЙ КОНТРОЛЬ ==================== -->
+    <div id="control-overlay" class="overlay" style="z-index:6000;">
+        <div class="unified-card" style="flex-direction: column; max-width: 500px; padding: 28px; gap: 20px;">
+            <div style="font-size: 10px; color: var(--accent); letter-spacing: 2px; font-weight: bold; text-transform: uppercase;">Диагностика и контроль</div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 14px 18px; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 13px; font-weight: bold;">MQTT Брокер</span>
+                    <span id="ctrl_ov_mqtt" style="font-size: 12px; padding: 4px 10px; border-radius: 20px; background: #da3633; color: #fff;">OFFLINE</span>
+                </div>
+                <div style="font-size: 11px; color: #8b949e;">Хост: <span id="ctrl_host">m9.wqtt.ru:13733</span></div>
+                <div style="font-size: 11px; color: #8b949e; margin-top: 6px;">Client ID: <span id="ctrl_client_id">—</span></div>
+                <button id="ctrl_reconnect_btn" style="margin-top: 14px; width: 100%; padding: 8px; background: #21262d; border: 1px solid var(--border); border-radius: 8px; color: #c9d1d9; font-size: 11px; font-weight: bold; cursor: pointer;" onclick="manualReconnect()">ПЕРЕПОДКЛЮЧИТЬ MQTT</button>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 14px 18px; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 13px; font-weight: bold;">PWA & Хранилище</span>
+                    <span id="ctrl_ov_pwa" style="font-size: 11px; color: #8b949e;">⏺</span>
+                </div>
+                <div style="font-size: 11px; color: #8b949e;">Версия приложения: <span id="ctrl_version">1.2.0</span></div>
+                <div style="font-size: 11px; color: #8b949e; margin-top: 6px;">Режим: <span id="ctrl_mode">—</span></div>
+                <button id="ctrl_clear_cache_btn" style="margin-top: 14px; width: 100%; padding: 8px; background: #21262d; border: 1px solid var(--border); border-radius: 8px; color: #c9d1d9; font-size: 11px; font-weight: bold; cursor: pointer;" onclick="clearAppCache()">СБРОСИТЬ КЭШ / ПЕРЕЗАГРУЗИТЬ</button>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.2); border-radius: 16px; padding: 14px 18px; border: 1px solid var(--border);">
+                <div style="font-size: 11px; font-weight: bold; margin-bottom: 8px;">📊 Статистика MQTT</div>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                    <div><span style="color: #8b949e;">Получено:</span> <span id="ctrl_msg_rx">0</span></div>
+                    <div><span style="color: #8b949e;">Отправлено:</span> <span id="ctrl_msg_tx">0</span></div>
+                    <div><span style="color: #8b949e;">Потеряно в очереди:</span> <span id="ctrl_msg_queued">0</span></div>
+                </div>
+                <div style="margin-top: 12px; max-height: 120px; overflow-y: auto; font-size: 10px; font-family: monospace; background: #0d1117; border-radius: 8px; padding: 8px;">
+                    <div id="ctrl_log_entries">— последние события —</div>
+                </div>
+            </div>
+
+            <button class="close-btn" onclick="closeOverlay()">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <script src="script.js"></script>
 </body>
