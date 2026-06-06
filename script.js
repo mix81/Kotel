@@ -310,6 +310,14 @@ const topicRouter = {
     'home/opi4pro/disk/root/percent':  v => { updateServerBar('srv_disk', 'srv_disk_bar', v, '#e3b341'); const el = DOM['srv_disk']||document.getElementById('srv_disk'); if(el) el.innerText = Math.round(v)+'%'; },
     'home/opi4pro/disk/root/used_gb':  v => setText('srv_disk_used',  parseFloat(v).toFixed(0)),
     'home/opi4pro/disk/root/total_gb': v => setText('srv_disk_total', parseFloat(v).toFixed(0)),
+    
+    // Датчики движения
+    'dom/dvijKuh':       v => updateMotionSensor('dom/dvijKuh', v),
+    'dom/dvijUlica':     v => updateMotionSensor('dom/dvijUlica', v),
+    'dom/dvijZal':       v => updateMotionSensor('dom/dvijZal', v),
+    'dom/dvijKuh/time':  v => updateMotionTime('dom/dvijKuh/time', v),
+    'dom/dvijUlica/time': v => updateMotionTime('dom/dvijUlica/time', v),
+    'dom/dvijZal/time':  v => updateMotionTime('dom/dvijZal/time', v),
 };
 
 // =====================================================================
@@ -1122,7 +1130,124 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 
-// ===== ФУНКЦИИ ДЛЯ ПОЛИВА И АНИМАЦИИ ДОЖДЯ =====
+// ===== ФУНКЦИИ ЗАЩИТЫ ПАРОЛЕМ =====
+
+function checkPassword() {
+    const input = document.getElementById('password-input');
+    const correctPassword = '1902';
+    
+    if (input.value === correctPassword) {
+        const lockScreen = document.getElementById('lock-screen');
+        const appContent = document.getElementById('app-content');
+        
+        // Плавное исчезновение экрана блокировки
+        lockScreen.style.opacity = '0';
+        lockScreen.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => {
+            lockScreen.style.display = 'none';
+            if (appContent) appContent.style.filter = 'blur(0px)';
+        }, 300);
+        
+        input.value = '';
+    } else {
+        input.value = '';
+        input.placeholder = '❌ НЕВЕРНО';
+        setTimeout(() => {
+            input.placeholder = '••••';
+        }, 1500);
+    }
+}
+
+// ===== ФУНКЦИИ ДАТЧИКОВ ДВИЖЕНИЯ =====
+
+const motionSensors = {
+    'dom/dvijKuh': { id: 'sensor_motion_kuh', iconId: 'sensor_motion_icon_kuh', timeId: 'dom/dvijKuh/time', state: 0, lastTime: '--' },
+    'dom/dvijUlica': { id: 'sensor_motion_ulica', iconId: 'sensor_motion_icon_ulica', timeId: 'dom/dvijUlica/time', state: 0, lastTime: '--' },
+    'dom/dvijZal': { id: 'sensor_motion_zal', iconId: 'sensor_motion_icon_zal', timeId: 'dom/dvijZal/time', state: 0, lastTime: '--' }
+};
+
+function updateMotionSensor(topic, value) {
+    if (motionSensors[topic]) {
+        motionSensors[topic].state = +value;
+        updateMotionUI(topic);
+    }
+}
+
+function formatMotionTime(timestamp) {
+    // Принимаем Unix timestamp (секунды) — вычисляем сколько прошло
+    const ts = parseInt(timestamp);
+    if (!ts || ts <= 0) return '--';
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    const elapsed = nowSec - ts;
+
+    if (elapsed < 0) return '--';
+    if (elapsed < 60) return elapsed + ' с назад';
+    if (elapsed < 3600) {
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        return mins + ' мин' + (secs > 0 ? ' ' + secs + ' с' : '') + ' назад';
+    }
+    if (elapsed < 86400) {
+        const hours = Math.floor(elapsed / 3600);
+        const mins  = Math.floor((elapsed % 3600) / 60);
+        return hours + ' ч' + (mins > 0 ? ' ' + mins + ' мин' : '') + ' назад';
+    }
+    const days = Math.floor(elapsed / 86400);
+    return days + ' д назад';
+}
+
+function updateMotionTime(topic, timeStr) {
+    if (topic.includes('/time')) {
+        const baseTopic = topic.replace('/time', '');
+        if (motionSensors[baseTopic]) {
+            motionSensors[baseTopic].lastTime = timeStr;
+
+            // Вычисляем прошедшее время в секундах для порога 2 минут
+            const ts = parseInt(timeStr);
+            let elapsedSeconds = 0;
+            if (ts > 0) {
+                elapsedSeconds = Math.floor(Date.now() / 1000) - ts;
+            }
+
+            updateMotionUI(baseTopic, elapsedSeconds > 0 ? elapsedSeconds : 0);
+        }
+    }
+}
+
+function updateMotionUI(topic, timeSeconds = 0) {
+    const sensor = motionSensors[topic];
+    if (!sensor) return;
+    
+    const element = document.getElementById(sensor.id);
+    const iconElement = document.getElementById(sensor.iconId);
+    if (!element) return;
+    
+    // Показываем время вместо НЕТ/ОБНАРУЖЕНО
+    const displayTime = formatMotionTime(sensor.lastTime);
+    element.textContent = displayTime;
+    
+    // Красная иконка если движение было < 2 минут назад (120 секунд)
+    const isRecent = timeSeconds > 0 && timeSeconds < 120;
+    
+    if (iconElement) {
+        if (isRecent) {
+            iconElement.style.stroke = '#da3633'; // красный цвет как открытая дверь
+            iconElement.style.color = '#da3633';
+        } else {
+            iconElement.style.stroke = 'currentColor';
+            iconElement.style.color = 'currentColor';
+        }
+    }
+    
+    if (isRecent) {
+        element.classList.add('open');
+        element.classList.remove('closed');
+    } else {
+        element.classList.remove('open');
+        element.classList.add('closed');
+    }
+}
 
 let rainDrops = [];
 let rainAnimationActive = false;
@@ -1339,6 +1464,20 @@ setInterval(() => {
 setInterval(() => {
     updateControlPanel();
 }, 2000);
+
+// Периодическое обновление времени датчиков движения (раз в 30 секунд)
+setInterval(() => {
+    Object.keys(motionSensors).forEach(topic => {
+        const sensor = motionSensors[topic];
+        if (sensor.lastTime && sensor.lastTime !== '--') {
+            const ts = parseInt(sensor.lastTime);
+            if (ts > 0) {
+                const elapsed = Math.floor(Date.now() / 1000) - ts;
+                updateMotionUI(topic, elapsed > 0 ? elapsed : 0);
+            }
+        }
+    });
+}, 30000);
 
 // ИНИЦИАЛИЗАЦИЯ
 window.addEventListener('DOMContentLoaded', () => {
