@@ -702,16 +702,31 @@ const CHART_CFG = {
         colorBg:     'rgba(227,179,65,0.08)',
         maxHours:    168,
         defaultHours:6,
+    },
+    pressure: {
+        entity:      'sensor.pressure_158d00052dc128',
+        canvasId:    'pressureChart',
+        loadingId:   'pressure_chart_loading',
+        errorId:     'pressure_chart_error',
+        lastValId:   'pressure_chart_last_val',
+        overlayId:   'pressure-chart-overlay',
+        color:       '#a5d6ff',
+        colorBg:     'rgba(165,214,255,0.07)',
+        maxHours:    168,
+        defaultHours:6,
+        unit:        ' мм',
     }
 };
 
 const CHART_MIN_VIEW = 10;
 
 const chartState = {
-    street: { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
-              loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 },
-    boiler: { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
-              loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 }
+    street:   { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
+                loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 },
+    boiler:   { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
+                loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 },
+    pressure: { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
+                loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 }
 };
 let _activeTouchKey = null;
 let _touchState     = null;
@@ -721,6 +736,9 @@ function openChartOverlay() {
 }
 function openBoilerChartOverlay() {
     _openChart('boiler');
+}
+function openPressureChartOverlay() {
+    _openChart('pressure');
 }
 function _openChart(key) {
     const cfg = CHART_CFG[key];
@@ -807,7 +825,7 @@ async function _chartLoad(key, fromMs, toMs, resetView) {
 
         const lastVal = [...s.allVals].reverse().find(v => v !== null);
         const lastEl  = document.getElementById(cfg.lastValId);
-        if (lastEl && lastVal !== undefined) lastEl.innerText = lastVal.toFixed(1) + '°C';
+        if (lastEl && lastVal !== undefined) lastEl.innerText = lastVal.toFixed(1) + (cfg.unit || '°C');
 
         _chartRender(key);
         if (resetView) _chartAttachTouch(key);
@@ -898,7 +916,7 @@ function _chartAttachTouch(key) {
 }
 function _chartDetachTouch(key) {
     const id = key ? CHART_CFG[key]?.canvasId : null;
-    ['streetTempChart','boilerTempChart'].forEach(cid => {
+    ['streetTempChart','boilerTempChart','pressureChart'].forEach(cid => {
         if (!id || cid === id) {
             const c = document.getElementById(cid);
             if (c) {
@@ -1227,25 +1245,36 @@ function updateMotionUI(topic, timeSeconds = 0) {
     const displayTime = formatMotionTime(sensor.lastTime);
     element.textContent = displayTime;
     
-    // Красная иконка если движение было < 2 минут назад (120 секунд)
+    // Красная иконка и подсветка блока если движение было < 2 минут назад (120 секунд)
     const isRecent = timeSeconds > 0 && timeSeconds < 120;
-    
+
+    // Определяем ID блока по sensor.id
+    const motionBlockMap = {
+        'sensor_motion_kuh':   'sensor_block_motion_kuh',
+        'sensor_motion_ulica': 'sensor_block_motion_ulica',
+        'sensor_motion_zal':   'sensor_block_motion_zal',
+    };
+    const blockId = motionBlockMap[sensor.id];
+    const blockEl = blockId ? document.getElementById(blockId) : null;
+
     if (iconElement) {
         if (isRecent) {
-            iconElement.style.stroke = '#da3633'; // красный цвет как открытая дверь
-            iconElement.style.color = '#da3633';
+            iconElement.style.stroke = '#da3633';
+            iconElement.style.color  = '#da3633';
         } else {
             iconElement.style.stroke = 'currentColor';
-            iconElement.style.color = 'currentColor';
+            iconElement.style.color  = 'currentColor';
         }
     }
     
     if (isRecent) {
         element.classList.add('open');
         element.classList.remove('closed');
+        if (blockEl) blockEl.classList.add('open');
     } else {
         element.classList.remove('open');
         element.classList.add('closed');
+        if (blockEl) blockEl.classList.remove('open');
     }
 }
 
@@ -1465,7 +1494,7 @@ setInterval(() => {
     updateControlPanel();
 }, 2000);
 
-// Периодическое обновление времени датчиков движения (раз в 30 секунд)
+// Периодическое обновление времени датчиков движения (раз в 10 секунд)
 setInterval(() => {
     Object.keys(motionSensors).forEach(topic => {
         const sensor = motionSensors[topic];
@@ -1477,7 +1506,7 @@ setInterval(() => {
             }
         }
     });
-}, 30000);
+}, 10000);
 
 // ИНИЦИАЛИЗАЦИЯ
 window.addEventListener('DOMContentLoaded', () => {
