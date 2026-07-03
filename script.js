@@ -45,7 +45,7 @@ function initDOMCache() {
         'bath-temp-container','bath-zad-container',
         'power_watts','power_watts_ov','voltage_volts','voltage_volts_ov',
         'current_amps','current_amps_ov','power_boiler','power_water_heater',
-        'card_shield_svg','card-security',
+        'sw_vent_det','card_shield_svg','card-security',
         'sensor_hall_window','sensor_bed_window','sensor_kids_window',
         'sensor_kitchen_window','sensor_kitchen_door','sensor_front_door',
         'srv_cpu','srv_cpu_bar','srv_ram','srv_ram_bar','srv_ram_used','srv_ram_total',
@@ -86,7 +86,7 @@ let states = {
     hall_vent:0, hall_fan_speed:0, wardrobe_light:0,
     pritok:0, pritok_speed:0,
     street_light:0, street_bbq:0, street_garland:0, street_lanterns:0, security_mode:0,
-    watering_zone1:0, watering_zone2:0,
+    watering_zone1:0, watering_zone2:0, vent_det:0,
     mode: 'off'
 };
 
@@ -218,11 +218,12 @@ const topicRouter = {
     'dom/davlUlica': v => { setText('p_street', v); setText('p_street_ov', v); },
     'dom/svUlica':   v => { states.street_light = +v; updateButtonState('sw_street_light', +v); updateStreetGlow(); },
     'dom/svMangal':  v => { states.street_bbq = +v;  updateButtonState('sw_street_bbq', +v);   updateStreetGlow(); },
-    'dom/rozDom':    v => { states.street_garland = +v; updateButtonState('sw_street_garland', +v); updateStreetGlow(); },
+    'dom/svGirlynda': v => { states.street_garland = +v; updateButtonState('sw_street_garland', +v); updateStreetGlow(); },
     'dom/svFonar':   v => { states.street_lanterns = +v; updateButtonState('sw_street_lanterns', +v); updateStreetGlow(); },
     'dom/poliv1':    v => { states.watering_zone1 = +v; updateButtonState('sw_watering_zone1', +v); handleWateringToggle(); },
     'dom/poliv2':    v => { states.watering_zone2 = +v; updateButtonState('sw_watering_zone2', +v); handleWateringToggle(); },
     'dom/svGarderob':v => { states.wardrobe_light = +v; updateButtonState('sw_wardrobe', +v); },
+    'dom/VentDet':    v => { states.vent_det = +v; updateButtonState('sw_vent_det', +v); },
     'dom/tempZal': v => { setText('t_hall', v); setText('t_hall_ov', v); updateHomeCardAverage(); },
     'dom/vlagZal': v => { setText('h_hall', v); setText('h_hall_ov', v); updateHomeCardAverage(); },
     'dom/svZal1':  v => { updateItem('sv1', v); updateHomeCardGlow(); },
@@ -1281,46 +1282,55 @@ function updateMotionUI(topic, timeSeconds = 0) {
 let rainDrops = [];
 let rainAnimationActive = false;
 
-function createRaindrop() {
+function createWaterDrop() {
     const container = document.getElementById('card-street');
     if (!container) return;
-    
+    const rect = container.getBoundingClientRect();
+    const h = rect.height || 150;
+
     const drop = document.createElement('div');
+    // Случайный размер — капля или тонкая струйка
+    const isStream = Math.random() > 0.55;
     drop.style.position = 'absolute';
-    drop.style.width = '2px';
-    drop.style.height = '2px';
+    drop.style.width  = isStream ? '1.5px' : '2.5px';
+    drop.style.height = isStream ? (Math.random() * 8 + 5) + 'px' : '2.5px';
     drop.style.backgroundColor = '#58a6ff';
-    drop.style.borderRadius = '50%';
-    drop.style.top = '-5px';
-    drop.style.left = Math.random() * 100 + '%';
-    drop.style.opacity = '0.8';
-    drop.style.boxShadow = '0 0 3px rgba(88, 166, 255, 0.8)';
+    drop.style.borderRadius = isStream ? '1px' : '50%';
     drop.style.pointerEvents = 'none';
     drop.style.zIndex = '10';
-    
+
+    // Стартуем снизу карточки, чуть выше нижнего края
+    const startY = h + Math.random() * 8;
+    const startX = Math.random() * 100;
+    drop.style.left    = startX + '%';
+    drop.style.bottom  = '0px';
+    drop.style.top     = 'unset';
+    drop.style.opacity = (Math.random() * 0.4 + 0.5).toFixed(2);
+    drop.style.boxShadow = '0 0 4px rgba(88,166,255,0.6)';
+
     container.appendChild(drop);
-    
-    const dropObj = {
-        element: drop,
-        x: parseFloat(drop.style.left),
-        y: 0,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: Math.random() * 0.8 + 0.5
-    };
-    
+
+    // Вертикальная скорость вверх, лёгкое боковое смещение
+    const vy   = -(Math.random() * 1.4 + 0.6); // отрицательная — вверх
+    const vx   = (Math.random() - 0.5) * 0.4;
+    const dropObj = { element: drop, x: startX, y: startY, vy, vx, h };
     rainDrops.push(dropObj);
 }
 
-function updateRaindrops() {
+function updateWaterDrops() {
     rainDrops = rainDrops.filter(drop => {
-        drop.y += drop.vy;
+        drop.y += drop.vy;         // движение вверх
         drop.x += drop.vx;
-        drop.vx += (Math.random() - 0.5) * 0.1;
-        
-        drop.element.style.top = drop.y + 'px';
-        drop.element.style.left = drop.x + '%';
-        
-        if (drop.y > 150) {
+        drop.vx += (Math.random() - 0.5) * 0.06; // лёгкая турбулентность
+
+        // Затухание прозрачности ближе к верху
+        const progress = 1 - (drop.y / drop.h);
+        drop.element.style.opacity = Math.max(0, (1 - progress * 1.2) * 0.85).toFixed(2);
+        drop.element.style.top  = drop.y + 'px';
+        drop.element.style.bottom = 'unset';
+        drop.element.style.left = Math.max(0, Math.min(100, drop.x)) + '%';
+
+        if (drop.y < -10) {
             drop.element.remove();
             return false;
         }
@@ -1330,15 +1340,16 @@ function updateRaindrops() {
 
 function animateRain() {
     if (!rainAnimationActive) return;
-    if (Math.random() > 0.4) createRaindrop();
-    updateRaindrops();
+    if (Math.random() > 0.35) createWaterDrop();
+    updateWaterDrops();
     requestAnimationFrame(animateRain);
 }
 
 function startRainAnimation() {
     if (rainAnimationActive) return;
     rainAnimationActive = true;
-    for (let i = 0; i < 50; i++) createRaindrop();
+    // Засеиваем начальные капли в разных точках снизу
+    for (let i = 0; i < 30; i++) createWaterDrop();
     animateRain();
 }
 
