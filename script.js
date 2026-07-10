@@ -1403,85 +1403,153 @@ function getWeatherDesc(code) {
 async function openWeatherForecast() {
     const overlay = document.getElementById('weather-overlay');
     if (!overlay) return;
-    
     overlay.style.display = 'flex';
     setTimeout(() => overlay.classList.add('active'), 10);
-    
+
+    const forecastEl = document.getElementById('weather_forecast');
+    if (forecastEl) forecastEl.innerHTML = '<div style="color:#8b949e;text-align:center;padding:20px;font-size:12px;">Загрузка...</div>';
+
+    function metIcon(sym) {
+        if (!sym) return '🌡️';
+        const s = sym.replace(/_day|_night|_polartwilight/g, '');
+        const map = {
+            clearsky:'☀️', fair:'🌤️', partlycloudy:'⛅', cloudy:'☁️', fog:'🌫️',
+            lightrain:'🌦️', rain:'🌧️', heavyrain:'🌧️',
+            lightrainshowers:'🌦️', rainshowers:'🌦️', heavyrainshowers:'🌧️',
+            lightrainandthunder:'🌩️', rainandthunder:'⛈️', heavyrainandthunder:'⛈️',
+            lightrainshowersandthunder:'🌩️', rainshowersandthunder:'⛈️', heavyrainshowersandthunder:'⛈️',
+            lightsleet:'🌨️', sleet:'🌨️', heavysleet:'🌨️',
+            lightsleetshowers:'🌨️', sleetshowers:'🌨️', heavysleetshowers:'🌨️',
+            lightsleetandthunder:'⛈️', sleetandthunder:'⛈️', heavysleetandthunder:'⛈️',
+            lightsleetshowersandthunder:'⛈️', sleetshowersandthunder:'⛈️', heavysleetshowersandthunder:'⛈️',
+            lightsnow:'❄️', snow:'❄️', heavysnow:'❄️',
+            lightsnowshowers:'❄️', snowshowers:'❄️', heavysnowshowers:'❄️',
+            lightsnowandthunder:'⛈️', snowandthunder:'⛈️', heavysnowandthunder:'⛈️',
+            lightsnowshowersandthunder:'⛈️', snowshowersandthunder:'⛈️', heavysnowshowersandthunder:'⛈️',
+        };
+        return map[s] || '🌡️';
+    }
+
+    function metDesc(sym) {
+        if (!sym) return '';
+        const s = sym.replace(/_day|_night|_polartwilight/g, '');
+        const map = {
+            clearsky:'Ясно', fair:'Малооблачно', partlycloudy:'Переменная облачность', cloudy:'Облачно', fog:'Туман',
+            lightrain:'Небольшой дождь', rain:'Дождь', heavyrain:'Сильный дождь',
+            lightrainshowers:'Небольшой дождь', rainshowers:'Дождь', heavyrainshowers:'Ливень',
+            lightrainandthunder:'Гроза', rainandthunder:'Гроза с дождём', heavyrainandthunder:'Гроза с ливнем',
+            lightrainshowersandthunder:'Гроза', rainshowersandthunder:'Гроза с дождём', heavyrainshowersandthunder:'Гроза с ливнем',
+            lightsleet:'Мокрый снег', sleet:'Мокрый снег', heavysleet:'Сильный мокрый снег',
+            lightsleetshowers:'Мокрый снег', sleetshowers:'Мокрый снег', heavysleetshowers:'Сильный мокрый снег',
+            lightsnow:'Небольшой снег', snow:'Снег', heavysnow:'Снегопад',
+            lightsnowshowers:'Небольшой снег', snowshowers:'Снег', heavysnowshowers:'Снегопад',
+        };
+        return map[s] || 'Переменная облачность';
+    }
+
+    function renderDays(days) {
+        if (!forecastEl) return;
+        forecastEl.innerHTML = '';
+        const daysRu = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+        days.forEach(d => {
+            const div = document.createElement('div');
+            div.style.cssText = 'background:rgba(0,0,0,0.2);border-radius:12px;padding:12px;border:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;';
+            div.innerHTML = `
+                <div style="font-size:36px;line-height:1;flex-shrink:0;">${d.icon}</div>
+                <div style="flex:1;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+                        <div>
+                            <div style="font-size:11px;color:#8b949e;font-weight:bold;letter-spacing:0.5px;">${daysRu[d.date.getDay()]} ${d.date.getDate()}</div>
+                            <div style="font-size:12px;color:#c9d1d9;text-transform:uppercase;letter-spacing:0.5px;font-weight:500;margin-top:2px;">${d.desc}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:24px;font-weight:bold;color:#58a6ff;line-height:1;">${d.tMax}°/${d.tMin}°</div>
+                        </div>
+                    </div>
+                    <div style="font-size:11px;color:#c9d1d9;border-top:1px solid rgba(0,0,0,0.3);padding-top:6px;margin-top:6px;">
+                        Ветер: <span style="color:#a5d6ff;font-weight:bold;">${d.wind}</span> м/с | Осадки: <span style="color:#a5d6ff;font-weight:bold;">${d.rain} мм</span>
+                    </div>
+                </div>`;
+            forecastEl.appendChild(div);
+        });
+    }
+
     try {
-        // Асбест координаты: 60.39°N 63.45°E
-        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=60.39&longitude=63.45&current=temperature_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&timezone=Asia/Yekaterinburg&forecast_days=4');
-        
-        if (!response.ok) throw new Error('API Error');
-        const data = await response.json();
-        
-        // Текущая погода
-        const current = data.current;
-        
+        const r = await fetch(
+            'https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=60.39&lon=63.45',
+            { cache: 'no-store', headers: { 'User-Agent': 'SmartHomeDashboard/1.0' } }
+        );
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        const ts = data.properties.timeseries;
+
+        // === Текущая погода ===
+        const now = ts[0];
+        const cur = now.data.instant.details;
+        const sym = now.data.next_1_hours?.summary?.symbol_code ||
+                    now.data.next_6_hours?.summary?.symbol_code || '';
+
         const tempEl = document.getElementById('weather_temp');
         const iconEl = document.getElementById('weather_icon');
         const descEl = document.getElementById('weather_desc');
         const windEl = document.getElementById('weather_wind');
         const rainEl = document.getElementById('weather_rain');
-        
-        if (tempEl) tempEl.textContent = Math.round(current.temperature_2m);
-        if (iconEl) iconEl.textContent = getWeatherIcon(current.weather_code, true);
-        const desc = getWeatherDesc(current.weather_code);
-        if (descEl) descEl.textContent = desc;
-        if (windEl) windEl.textContent = (current.wind_speed_10m / 3.6).toFixed(1);
-        if (rainEl) rainEl.textContent = Math.round(current.precipitation || 0);
-        
-        // Прогноз на 3 следующих дня (дни 1, 2, 3)
-        const forecastEl = document.getElementById('weather_forecast');
-        if (forecastEl) {
-            forecastEl.innerHTML = '';
-            
-            // Показываем дни 1, 2, 3 (следующие три дня после сегодня)
-            for (let i = 1; i <= 3; i++) {
-                const dayDate = data.daily.time[i];
-                const date = new Date(dayDate + 'T00:00:00');
-                
-                // День недели на русском
-                const daysRu = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-                const dayName = daysRu[date.getDay()];
-                const dayNum = date.getDate();
-                
-                const tempMax = Math.round(data.daily.temperature_2m_max[i]);
-                const tempMin = Math.round(data.daily.temperature_2m_min[i]);
-                const wind = (data.daily.wind_speed_10m_max[i] / 3.6).toFixed(1);
-                const rain = Math.round(data.daily.precipitation_probability_max[i]);
-                const icon = getWeatherIcon(data.daily.weather_code[i], true);
-                const desc = getWeatherDesc(data.daily.weather_code[i]);
-                
-                const forecastDiv = document.createElement('div');
-                forecastDiv.style.cssText = 'background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; border: 1px solid var(--border); display: flex; gap: 12px; align-items: flex-start;';
-                
-                forecastDiv.innerHTML = `
-                    <div style="font-size: 36px; line-height: 1; flex-shrink: 0;">${icon}</div>
-                    <div style="flex: 1;">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
-                            <div>
-                                <div style="font-size: 11px; color: #8b949e; font-weight: bold; letter-spacing: 0.5px;">${dayName} ${dayNum}</div>
-                                <div style="font-size: 12px; color: #c9d1d9; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; margin-top: 2px;">${desc}</div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 24px; font-weight: bold; color: #58a6ff; line-height: 1;">${tempMax}°/${tempMin}°</div>
-                            </div>
-                        </div>
-                        <div style="font-size: 11px; color: #c9d1d9; border-top: 1px solid rgba(0,0,0,0.3); padding-top: 6px; margin-top: 6px;">
-                            Ветер: <span style="color: #a5d6ff; font-weight: bold;">${wind}</span> м/с | Осадки: <span style="color: #a5d6ff; font-weight: bold;">${rain}%</span>
-                        </div>
-                    </div>
-                `;
-                
-                forecastEl.appendChild(forecastDiv);
+        if (tempEl) tempEl.textContent = Math.round(cur.air_temperature);
+        if (iconEl) iconEl.textContent = metIcon(sym);
+        if (descEl) descEl.textContent = metDesc(sym);
+        if (windEl) windEl.textContent = cur.wind_speed.toFixed(1);
+        // Осадки текущего часа
+        if (rainEl) rainEl.textContent = (now.data.next_1_hours?.details?.precipitation_amount || 0).toFixed(1);
+
+        // === Прогноз: группируем по дням, используем ТОЛЬКО next_1_hours для осадков ===
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const byDay = {};
+
+        ts.forEach(t => {
+            const dayStr = t.time.slice(0, 10);
+            if (dayStr === todayStr) return;
+            if (!byDay[dayStr]) byDay[dayStr] = { temps: [], winds: [], rain: 0, syms: {}, hours: [] };
+            const d = byDay[dayStr];
+            const inst = t.data.instant.details;
+            d.temps.push(inst.air_temperature);
+            d.winds.push(inst.wind_speed);
+            d.hours.push(t.time.slice(11, 13)); // час
+
+            // Осадки: берём ТОЛЬКО next_1_hours чтобы не суммировать перекрывающиеся периоды
+            if (t.data.next_1_hours) {
+                d.rain += t.data.next_1_hours.details.precipitation_amount || 0;
             }
-        }
-    } catch (error) {
-        console.error('Weather error:', error);
-        const forecastEl = document.getElementById('weather_forecast');
-        if (forecastEl) {
-            forecastEl.innerHTML = '<div style="color:#da3633;text-align:center;padding:20px;font-size:12px;">Ошибка при загрузке прогноза</div>';
-        }
+
+            // Символ погоды: приоритет дневным часам (9-18)
+            const h = parseInt(t.time.slice(11, 13));
+            const s1 = t.data.next_1_hours?.summary?.symbol_code;
+            const s6 = t.data.next_6_hours?.summary?.symbol_code;
+            const sym = s1 || s6;
+            if (sym) {
+                const weight = (h >= 9 && h <= 18) ? 2 : 1;
+                d.syms[sym] = (d.syms[sym] || 0) + weight;
+            }
+        });
+
+        const days = Object.entries(byDay).slice(0, 3).map(([dateStr, d]) => {
+            // Самый частый символ (взвешенный по времени суток)
+            const bestSym = Object.entries(d.syms).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+            return {
+                date: new Date(dateStr + 'T00:00:00'),
+                icon: metIcon(bestSym),
+                desc: metDesc(bestSym),
+                tMax: Math.round(Math.max(...d.temps)),
+                tMin: Math.round(Math.min(...d.temps)),
+                wind: Math.max(...d.winds).toFixed(1),
+                rain: d.rain.toFixed(1),
+            };
+        });
+
+        renderDays(days);
+
+    } catch(e) {
+        console.error('[Weather] met.no:', e.message);
+        if (forecastEl) forecastEl.innerHTML = '<div style="color:#da3633;text-align:center;padding:20px;font-size:12px;">⚠️ Нет данных о погоде</div>';
     }
 }
 
