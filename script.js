@@ -1400,6 +1400,423 @@ function getWeatherDesc(code) {
     return descMap[code] || 'Неизвестно';
 }
 
+
+
+// ═══════════════════════════════════════════════════════════
+//  АНИМАЦИЯ ПОГОДЫ НА КАРТОЧКЕ УЛИЦА (РЕАЛИСТИЧНАЯ)
+// ═══════════════════════════════════════════════════════════
+
+let _weatherAnimState = null;
+let _weatherAnimFrame = null;
+let _weatherAnimParticles = [];
+let _weatherAnimSvg = null;
+let _weatherAnimCanvas = null;
+let _weatherAnimCtx = null;
+let _weatherAnimW = 0;
+let _weatherAnimH = 0;
+
+function weatherSymToType(sym) {
+    if (!sym) return 'clear';
+    const s = sym.replace(/_day|_night|_polartwilight/g, '');
+    if (['clearsky','fair'].includes(s)) return 'clear';
+    if (['partlycloudy'].includes(s)) return 'partlycloudy';
+    if (['cloudy'].includes(s)) return 'cloudy';
+    if (s.includes('thunder')) return 'thunder';
+    if (s.includes('snow')) return 'snow';
+    if (s.includes('sleet')) return 'sleet';
+    if (s.includes('rain')) return 'rain';
+    if (s === 'fog') return 'fog';
+    return 'clear';
+}
+
+function initWeatherAnim() {
+    const container = document.getElementById('weather-anim-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    _weatherAnimSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    _weatherAnimSvg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+    container.appendChild(_weatherAnimSvg);
+
+    _weatherAnimCanvas = document.createElement('canvas');
+    _weatherAnimCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+    container.appendChild(_weatherAnimCanvas);
+
+    const rect = container.getBoundingClientRect();
+    _weatherAnimW = rect.width || 130;
+    _weatherAnimH = rect.height || 80;
+    _weatherAnimCanvas.width  = _weatherAnimW;
+    _weatherAnimCanvas.height = _weatherAnimH;
+    _weatherAnimCtx = _weatherAnimCanvas.getContext('2d');
+}
+
+function updateWeatherAnim(sym) {
+    const type = weatherSymToType(sym);
+    if (type === _weatherAnimState) return;
+    _weatherAnimState = type;
+
+    if (_weatherAnimFrame) { cancelAnimationFrame(_weatherAnimFrame); _weatherAnimFrame = null; }
+    _weatherAnimParticles = [];
+    if (_weatherAnimCtx) _weatherAnimCtx.clearRect(0, 0, _weatherAnimW, _weatherAnimH);
+
+    initWeatherAnim();
+    if (!_weatherAnimSvg || !_weatherAnimCtx) return;
+
+    const W = _weatherAnimW, H = _weatherAnimH;
+    const svg = _weatherAnimSvg;
+    const ctx = _weatherAnimCtx;
+
+    function svgEl(tag, attrs) {
+        const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+        for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+        svg.appendChild(el);
+        return el;
+    }
+
+    // ══ ЯСНО: Реалистичное свечение солнца ══
+    if (type === 'clear') {
+        // Дефс для градиентов
+        const defs = svgEl('defs', {});
+        
+        // Радиальный градиент для свечения солнца
+        const glowGrad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+        glowGrad.setAttribute('id', 'sunGlow');
+        glowGrad.setAttribute('cx', '50%');
+        glowGrad.setAttribute('cy', '50%');
+        glowGrad.setAttribute('r', '50%');
+        [['0%', 'rgba(255,200,0,0.8)'],['60%', 'rgba(255,150,0,0.3)'],['100%', 'rgba(255,100,0,0)']].forEach(([o,c]) => {
+            const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            s.setAttribute('offset', o);
+            s.setAttribute('stop-color', c);
+            glowGrad.appendChild(s);
+        });
+        defs.appendChild(glowGrad);
+
+        // Внешнее свечение (большой размытый круг)
+        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 22, fill: 'url(#sunGlow)', filter: 'blur(2px)' });
+        
+        // Основное солнце (твёрдый шар)
+        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 12, fill: '#ffc800', opacity: '0.95' });
+        
+        // Внутреннее яркое ядро
+        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 6, fill: '#ffeb3b', opacity: '0.8' });
+
+        // Анимация пульсации свечения
+        const glow = svg.querySelector('#sunGlow stop:first-of-type');
+        if (glow) {
+            const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            anim.setAttribute('attributeName', 'stop-color');
+            anim.setAttribute('values', 'rgba(255,200,0,0.8);rgba(255,220,0,0.95);rgba(255,200,0,0.8)');
+            anim.setAttribute('dur', '3s');
+            anim.setAttribute('repeatCount', 'indefinite');
+            glow.appendChild(anim);
+        }
+
+    // ══ МАЛООБЛАЧНО ══
+    } else if (type === 'partlycloudy') {
+        drawRealisticClouds([[W*0.25, H*0.25, 0.8], [W*0.65, H*0.35, 0.6]]);
+        // Солнце за облаком
+        svgEl('circle', { cx: W*0.68, cy: H*0.22, r: 10, fill: '#ffd700', opacity: '0.6' });
+
+    // ══ ОБЛАЧНО ══
+    } else if (type === 'cloudy') {
+        // Серое небо
+        svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(100,120,150,0.15)' });
+        drawRealisticClouds([[W*0.1, H*0.2, 1.0], [W*0.4, H*0.35, 0.85], [W*0.65, H*0.15, 0.75]]);
+
+    // ══ ТУМАН ══
+    } else if (type === 'fog') {
+        // Много полупрозрачных слоёв дымки
+        const defs = svgEl('defs', {});
+        const fogGrad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+        fogGrad.setAttribute('id', 'fogGrad');
+        fogGrad.setAttribute('x1', '0%');
+        fogGrad.setAttribute('y1', '0%');
+        fogGrad.setAttribute('x2', '100%');
+        fogGrad.setAttribute('y2', '100%');
+        [['0%', 'rgba(140,160,190,0.08)'],['50%', 'rgba(160,180,210,0.12)'],['100%', 'rgba(140,160,190,0.05)']].forEach(([o,c]) => {
+            const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            s.setAttribute('offset', o);
+            s.setAttribute('stop-color', c);
+            fogGrad.appendChild(s);
+        });
+        defs.appendChild(fogGrad);
+        
+        for (let i = 0; i < 8; i++) {
+            const y = (i / 8) * H;
+            svgEl('rect', { x: -W*0.2, y, width: W*1.4, height: H*0.15, fill: 'url(#fogGrad)',
+                filter: `blur(${2+i*0.3}px)`, opacity: String(0.4 + i*0.08) });
+        }
+
+    // ══ ДОЖДЬ ══
+    } else if (type === 'rain') {
+        drawRealisticClouds([[W*0.15, H*0.15, 0.95], [W*0.5, H*0.2, 0.85]]);
+        // Тёмный оверлей
+        svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(40,50,80,0.25)' });
+        
+        // Canvas: реалистичный дождь
+        let rainTick = 0;
+        const rainDrops = [];
+        function spawnRain() {
+            for (let i = 0; i < 3; i++) {
+                rainDrops.push({
+                    x: Math.random() * W,
+                    y: -5,
+                    vx: 0.8 + Math.random() * 0.4,
+                    vy: 3.5 + Math.random() * 1.5,
+                    len: 10 + Math.random() * 6,
+                    width: 1 + Math.random() * 0.5,
+                    alpha: 0.35 + Math.random() * 0.35,
+                });
+            }
+        }
+        function drawRain() {
+            if (_weatherAnimState !== type) return;
+            rainTick++;
+            ctx.clearRect(0, 0, W, H);
+            if (rainTick % 2 === 0) spawnRain();
+            
+            rainDrops.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Тонкие длинные полосы для дождя
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x - p.vx * 1.5, p.y - p.len);
+                ctx.strokeStyle = `rgba(100,160,220,${p.alpha})`;
+                ctx.lineWidth = p.width;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            });
+            
+            // Удаляем падающие капли
+            for (let i = rainDrops.length - 1; i >= 0; i--) {
+                if (rainDrops[i].y > H + 10) rainDrops.splice(i, 1);
+            }
+            
+            _weatherAnimFrame = requestAnimationFrame(drawRain);
+        }
+        drawRain();
+
+    // ══ МОК РЫЙ СНЕГ ══
+    } else if (type === 'sleet') {
+        drawRealisticClouds([[W*0.1, H*0.2, 0.9], [W*0.45, H*0.25, 0.8]]);
+        svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(80,90,130,0.2)' });
+        
+        let sleetTick = 0;
+        const sleetParticles = [];
+        function spawnSleet() {
+            for (let i = 0; i < 2; i++) {
+                sleetParticles.push({
+                    x: Math.random() * W,
+                    y: -4,
+                    vx: (Math.random() - 0.5) * 0.8,
+                    vy: 2 + Math.random() * 1.2,
+                    r: 2 + Math.random() * 1.5,
+                    alpha: 0.4 + Math.random() * 0.3,
+                });
+            }
+        }
+        function drawSleet() {
+            if (_weatherAnimState !== type) return;
+            sleetTick++;
+            ctx.clearRect(0, 0, W, H);
+            if (sleetTick % 3 === 0) spawnSleet();
+            
+            sleetParticles.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(160,190,240,${p.alpha})`;
+                ctx.fill();
+            });
+            
+            for (let i = sleetParticles.length - 1; i >= 0; i--) {
+                if (sleetParticles[i].y > H + 8) sleetParticles.splice(i, 1);
+            }
+            
+            _weatherAnimFrame = requestAnimationFrame(drawSleet);
+        }
+        drawSleet();
+
+    // ══ СНЕГ ══
+    } else if (type === 'snow') {
+        drawRealisticClouds([[W*0.1, H*0.15, 0.95], [W*0.4, H*0.25, 0.85], [W*0.65, H*0.1, 0.7]]);
+        
+        let snowTick = 0;
+        const snowFlakes = [];
+        function spawnSnow() {
+            snowFlakes.push({
+                x: Math.random() * W,
+                y: -3,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: 0.5 + Math.random() * 0.6,
+                r: 1.5 + Math.random() * 2.5,
+                alpha: 0.5 + Math.random() * 0.35,
+                phase: Math.random() * Math.PI * 2,
+                wobble: Math.random() * 0.3,
+            });
+        }
+        function drawSnow() {
+            if (_weatherAnimState !== type) return;
+            snowTick++;
+            ctx.clearRect(0, 0, W, H);
+            if (Math.random() > 0.35) spawnSnow();
+            
+            snowFlakes.forEach(f => {
+                f.y += f.vy;
+                f.x += f.vx + Math.sin(snowTick * 0.02 + f.phase) * f.wobble;
+                
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.r, 0, Math.PI*2);
+                ctx.fillStyle = `rgba(235,245,255,${f.alpha})`;
+                ctx.fill();
+                
+                // Мягкое свечение снежинки
+                ctx.strokeStyle = `rgba(220,240,255,${f.alpha*0.4})`;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            });
+            
+            for (let i = snowFlakes.length - 1; i >= 0; i--) {
+                if (snowFlakes[i].y > H + 6) snowFlakes.splice(i, 1);
+            }
+            
+            _weatherAnimFrame = requestAnimationFrame(drawSnow);
+        }
+        drawSnow();
+
+    // ══ ГРОЗА ══
+    } else if (type === 'thunder') {
+        drawRealisticClouds([[W*0.05, H*0.1, 1.1], [W*0.35, H*0.18, 1.0], [W*0.65, H*0.08, 0.85]]);
+        // Очень тёмный оверлей
+        svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(10,15,35,0.45)' });
+        
+        // Молния как белая вспышка
+        const flash = svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(255,255,200,0)', 'pointer-events': 'none' });
+        const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        anim.setAttribute('attributeName', 'fill');
+        anim.setAttribute('values', 'rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0.35);rgba(255,255,200,0.15);rgba(255,255,200,0.45);rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0);rgba(255,255,200,0)');
+        anim.setAttribute('dur', '4.5s');
+        anim.setAttribute('repeatCount', 'indefinite');
+        flash.appendChild(anim);
+        
+        // Сильный дождь при грозе
+        let thunderTick = 0;
+        const thunderRain = [];
+        function spawnThunderRain() {
+            for (let i = 0; i < 5; i++) {
+                thunderRain.push({
+                    x: Math.random() * W,
+                    y: -6,
+                    vx: 1.2 + Math.random() * 0.6,
+                    vy: 4.5 + Math.random() * 2,
+                    len: 12 + Math.random() * 8,
+                    width: 1.2 + Math.random() * 0.4,
+                    alpha: 0.3 + Math.random() * 0.35,
+                });
+            }
+        }
+        function drawThunderRain() {
+            if (_weatherAnimState !== type) return;
+            thunderTick++;
+            ctx.clearRect(0, 0, W, H);
+            if (thunderTick % 1 === 0) spawnThunderRain();
+            
+            thunderRain.forEach(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x - p.vx * 1.5, p.y - p.len);
+                ctx.strokeStyle = `rgba(120,170,255,${p.alpha})`;
+                ctx.lineWidth = p.width;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            });
+            
+            for (let i = thunderRain.length - 1; i >= 0; i--) {
+                if (thunderRain[i].y > H + 12) thunderRain.splice(i, 1);
+            }
+            
+            _weatherAnimFrame = requestAnimationFrame(drawThunderRain);
+        }
+        drawThunderRain();
+    }
+}
+
+// ══ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ══
+function drawRealisticClouds(cloudData) {
+    // cloudData: [[x, y, scale], ...]
+    const defs = svg.querySelector('defs') || document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    if (!svg.querySelector('defs')) {
+        const svg = document.querySelector('svg');
+        svg.insertBefore(defs, svg.firstChild);
+    }
+    
+    // Радиальный градиент для облаков (дымка)
+    const cloudGrad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+    cloudGrad.setAttribute('id', 'cloudGrad' + Math.random());
+    cloudGrad.setAttribute('cx', '45%');
+    cloudGrad.setAttribute('cy', '50%');
+    cloudGrad.setAttribute('r', '55%');
+    [['0%', 'rgba(200,215,245,0.35)'],['70%', 'rgba(180,200,235,0.15)'],['100%', 'rgba(160,180,220,0)']].forEach(([o,c]) => {
+        const s = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        s.setAttribute('offset', o);
+        s.setAttribute('stop-color', c);
+        cloudGrad.appendChild(s);
+    });
+    defs.appendChild(cloudGrad);
+    
+    cloudData.forEach(([cx, cy, scale], i) => {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        
+        // Облако — несколько эллипсов для реалистичной дымки
+        const parts = [
+            [0, 0, 18, 12],
+            [14, -6, 16, 10],
+            [28, -2, 14, 9],
+            [40, 4, 12, 8],
+            [10, 8, 15, 11],
+            [26, 10, 13, 7],
+        ];
+        
+        parts.forEach(([px, py, rx, ry]) => {
+            const el = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            el.setAttribute('cx', px * scale);
+            el.setAttribute('cy', py * scale);
+            el.setAttribute('rx', rx * scale);
+            el.setAttribute('ry', ry * scale);
+            el.setAttribute('fill', `url(#cloudGrad${i})`);
+            el.setAttribute('filter', `blur(${1.5*scale}px)`);
+            g.appendChild(el);
+        });
+        
+        g.setAttribute('transform', `translate(${cx},${cy})`);
+        svg.appendChild(g);
+        
+        // Медленная анимация движения облаков
+        const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        anim.setAttribute('attributeName', 'transform');
+        anim.setAttribute('type', 'translate');
+        anim.setAttribute('from', `${cx} ${cy}`);
+        anim.setAttribute('to', `${cx + 40*scale} ${cy}`);
+        anim.setAttribute('dur', String(15 + i*3) + 's');
+        anim.setAttribute('repeatCount', 'indefinite');
+        anim.setAttribute('additive', 'sum');
+        g.appendChild(anim);
+    });
+}
+
+let _currentWeatherSym = null;
+function setWeatherSymbol(sym) {
+    if (sym === _currentWeatherSym) return;
+    _currentWeatherSym = sym;
+    updateWeatherAnim(sym);
+}
+
 async function openWeatherForecast() {
     const overlay = document.getElementById('weather-overlay');
     if (!overlay) return;
@@ -1500,6 +1917,8 @@ async function openWeatherForecast() {
         if (windEl) windEl.textContent = cur.wind_speed.toFixed(1);
         // Осадки текущего часа
         if (rainEl) rainEl.textContent = (now.data.next_1_hours?.details?.precipitation_amount || 0).toFixed(1);
+        // Анимация на карточке Улица
+        setWeatherSymbol(sym);
 
         // === Прогноз: группируем по дням, используем ТОЛЬКО next_1_hours для осадков ===
         const todayStr = new Date().toISOString().slice(0, 10);
@@ -1596,6 +2015,17 @@ window.addEventListener('DOMContentLoaded', () => {
     addControlLog(`🚀 Приложение запущено, версия ${VERSION}`);
     setText('ctrl_version', VERSION);
     setText('ctrl_host', `${cfg.h}:${cfg.p}`);
+
+    // Инициализируем анимацию погоды (пока ясно по умолчанию)
+    setTimeout(() => { initWeatherAnim(); updateWeatherAnim('clearsky'); }, 300);
+
+    // Пересчитываем размер canvas при изменении экрана
+    window.addEventListener('resize', () => {
+        if (_currentWeatherSym) {
+            _weatherAnimState = null; // сбросить, чтобы перерисовать
+            updateWeatherAnim(_currentWeatherSym);
+        }
+    });
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

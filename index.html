@@ -73,15 +73,17 @@
 
                 <div id="card-street" class="card" style="flex: 1; max-width: none; min-width: 250px;"
                      onclick="openOverlay('street-overlay')">
-                    <h3>Улица</h3>
-                    <div class="temp-row" style="margin-top: 15px;">
+                    <!-- Анимация погоды -->
+                    <div id="weather-anim-container" style="position:absolute;top:0;right:0;width:50%;height:50%;pointer-events:none;overflow:hidden;border-radius:18px;z-index:1;opacity:0.35;"></div>
+                    <h3 style="position:relative;z-index:2;">Улица</h3>
+                    <div class="temp-row" style="margin-top: 15px; position:relative; z-index:2;">
                         <div class="val-display"><span id="t_street">--</span><span class="deg">°</span></div>
                         <div class="target-box">
                             <div class="target-label">Влажность</div>
                             <div class="target-val"><span id="h_street">--</span>%</div>
                         </div>
                     </div>
-                    <div style="font-size: 12px; color: #c9d1d9; margin-top: 15px; text-align: center;">
+                    <div style="font-size: 12px; color: #c9d1d9; margin-top: 15px; text-align: center; position:relative; z-index:2;">
                         Давление: <span id="p_street">--</span> мм рт.ст.
                     </div>
                 </div>
