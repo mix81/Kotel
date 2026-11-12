@@ -1443,8 +1443,8 @@ function initWeatherAnim() {
     container.appendChild(_weatherAnimCanvas);
 
     const rect = container.getBoundingClientRect();
-    _weatherAnimW = rect.width || 130;
-    _weatherAnimH = rect.height || 80;
+    _weatherAnimW = rect.width || 280;
+    _weatherAnimH = rect.height || 150;
     _weatherAnimCanvas.width  = _weatherAnimW;
     _weatherAnimCanvas.height = _weatherAnimH;
     _weatherAnimCtx = _weatherAnimCanvas.getContext('2d');
@@ -1463,6 +1463,9 @@ function updateWeatherAnim(sym) {
     if (!_weatherAnimSvg || !_weatherAnimCtx) return;
 
     const W = _weatherAnimW, H = _weatherAnimH;
+    // Масштаб элементов сцены: раньше анимация занимала угол (~80px высотой),
+    // теперь карточка целиком — элементы увеличиваем пропорционально высоте
+    const S = Math.max(0.9, Math.min(2.4, H / 85));
     const svg = _weatherAnimSvg;
     const ctx = _weatherAnimCtx;
 
@@ -1507,13 +1510,13 @@ function updateWeatherAnim(sym) {
         defs.appendChild(glowGrad);
 
         // Внешнее свечение (большой размытый круг)
-        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 22, fill: 'url(#sunGlow)', filter: 'url(#softBlur)' });
+        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 22*S, fill: 'url(#sunGlow)', filter: 'url(#softBlur)' });
         
         // Основное солнце (твёрдый шар)
-        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 12, fill: '#ffc800', opacity: '0.95' });
+        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 12*S, fill: '#ffc800', opacity: '0.95' });
         
         // Внутреннее яркое ядро
-        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 6, fill: '#ffeb3b', opacity: '0.8' });
+        svgEl('circle', { cx: W*0.7, cy: H*0.3, r: 6*S, fill: '#ffeb3b', opacity: '0.8' });
 
         // Анимация пульсации свечения
         const glow = svg.querySelector('#sunGlow stop:first-of-type');
@@ -1528,15 +1531,15 @@ function updateWeatherAnim(sym) {
 
     // ══ МАЛООБЛАЧНО ══
     } else if (type === 'partlycloudy') {
-        drawRealisticClouds(svg, [[W*0.25, H*0.25, 0.8], [W*0.65, H*0.35, 0.6]]);
+        drawRealisticClouds(svg, [[W*0.25, H*0.25, 0.8], [W*0.65, H*0.35, 0.6]], S);
         // Солнце за облаком
-        svgEl('circle', { cx: W*0.68, cy: H*0.22, r: 10, fill: '#ffd700', opacity: '0.6' });
+        svgEl('circle', { cx: W*0.68, cy: H*0.22, r: 10*S, fill: '#ffd700', opacity: '0.6' });
 
     // ══ ОБЛАЧНО ══
     } else if (type === 'cloudy') {
         // Серое небо
         svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(100,120,150,0.15)' });
-        drawRealisticClouds(svg, [[W*0.1, H*0.2, 1.0], [W*0.4, H*0.35, 0.85], [W*0.65, H*0.15, 0.75]]);
+        drawRealisticClouds(svg, [[W*0.1, H*0.2, 1.0], [W*0.4, H*0.35, 0.85], [W*0.65, H*0.15, 0.75]], S);
 
     // ══ ТУМАН ══
     } else if (type === 'fog') {
@@ -1564,7 +1567,7 @@ function updateWeatherAnim(sym) {
 
     // ══ ДОЖДЬ ══
     } else if (type === 'rain') {
-        drawRealisticClouds(svg, [[W*0.15, H*0.15, 0.95], [W*0.5, H*0.2, 0.85]]);
+        drawRealisticClouds(svg, [[W*0.15, H*0.15, 0.95], [W*0.5, H*0.2, 0.85]], S);
         // Тёмный оверлей
         svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(40,50,80,0.25)' });
         
@@ -1576,10 +1579,10 @@ function updateWeatherAnim(sym) {
                 rainDrops.push({
                     x: Math.random() * W,
                     y: -5,
-                    vx: 0.8 + Math.random() * 0.4,
-                    vy: 3.5 + Math.random() * 1.5,
-                    len: 10 + Math.random() * 6,
-                    width: 1 + Math.random() * 0.5,
+                    vx: (0.8 + Math.random() * 0.4) * S,
+                    vy: (3.5 + Math.random() * 1.5) * S,
+                    len: (10 + Math.random() * 6) * S,
+                    width: (1 + Math.random() * 0.5) * S,
                     alpha: 0.35 + Math.random() * 0.35,
                 });
             }
@@ -1615,7 +1618,7 @@ function updateWeatherAnim(sym) {
 
     // ══ МОК РЫЙ СНЕГ ══
     } else if (type === 'sleet') {
-        drawRealisticClouds(svg, [[W*0.1, H*0.2, 0.9], [W*0.45, H*0.25, 0.8]]);
+        drawRealisticClouds(svg, [[W*0.1, H*0.2, 0.9], [W*0.45, H*0.25, 0.8]], S);
         svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(80,90,130,0.2)' });
         
         let sleetTick = 0;
@@ -1625,9 +1628,9 @@ function updateWeatherAnim(sym) {
                 sleetParticles.push({
                     x: Math.random() * W,
                     y: -4,
-                    vx: (Math.random() - 0.5) * 0.8,
-                    vy: 2 + Math.random() * 1.2,
-                    r: 2 + Math.random() * 1.5,
+                    vx: (Math.random() - 0.5) * 0.8 * S,
+                    vy: (2 + Math.random() * 1.2) * S,
+                    r: (2 + Math.random() * 1.5) * S,
                     alpha: 0.4 + Math.random() * 0.3,
                 });
             }
@@ -1657,7 +1660,7 @@ function updateWeatherAnim(sym) {
 
     // ══ СНЕГ ══
     } else if (type === 'snow') {
-        drawRealisticClouds(svg, [[W*0.1, H*0.15, 0.95], [W*0.4, H*0.25, 0.85], [W*0.65, H*0.1, 0.7]]);
+        drawRealisticClouds(svg, [[W*0.1, H*0.15, 0.95], [W*0.4, H*0.25, 0.85], [W*0.65, H*0.1, 0.7]], S);
         
         let snowTick = 0;
         const snowFlakes = [];
@@ -1665,9 +1668,9 @@ function updateWeatherAnim(sym) {
             snowFlakes.push({
                 x: Math.random() * W,
                 y: -3,
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: 0.5 + Math.random() * 0.6,
-                r: 1.5 + Math.random() * 2.5,
+                vx: (Math.random() - 0.5) * 0.5 * S,
+                vy: (0.5 + Math.random() * 0.6) * S,
+                r: (1.5 + Math.random() * 2.5) * S,
                 alpha: 0.5 + Math.random() * 0.35,
                 phase: Math.random() * Math.PI * 2,
                 wobble: Math.random() * 0.3,
@@ -1704,7 +1707,7 @@ function updateWeatherAnim(sym) {
 
     // ══ ГРОЗА ══
     } else if (type === 'thunder') {
-        drawRealisticClouds(svg, [[W*0.05, H*0.1, 1.1], [W*0.35, H*0.18, 1.0], [W*0.65, H*0.08, 0.85]]);
+        drawRealisticClouds(svg, [[W*0.05, H*0.1, 1.1], [W*0.35, H*0.18, 1.0], [W*0.65, H*0.08, 0.85]], S);
         // Очень тёмный оверлей
         svgEl('rect', { x: 0, y: 0, width: W, height: H, fill: 'rgba(10,15,35,0.45)' });
         
@@ -1725,10 +1728,10 @@ function updateWeatherAnim(sym) {
                 thunderRain.push({
                     x: Math.random() * W,
                     y: -6,
-                    vx: 1.2 + Math.random() * 0.6,
-                    vy: 4.5 + Math.random() * 2,
-                    len: 12 + Math.random() * 8,
-                    width: 1.2 + Math.random() * 0.4,
+                    vx: (1.2 + Math.random() * 0.6) * S,
+                    vy: (4.5 + Math.random() * 2) * S,
+                    len: (12 + Math.random() * 8) * S,
+                    width: (1.2 + Math.random() * 0.4) * S,
                     alpha: 0.3 + Math.random() * 0.35,
                 });
             }
@@ -1762,9 +1765,11 @@ function updateWeatherAnim(sym) {
 }
 
 // ══ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ══
-function drawRealisticClouds(svgRoot, cloudData) {
+function drawRealisticClouds(svgRoot, cloudData, globalScale) {
     const NS = 'http://www.w3.org/2000/svg';
-    cloudData.forEach(([cx, cy, scale]) => {
+    const gScale = globalScale || 1;
+    cloudData.forEach(([cx, cy, baseScale]) => {
+        const scale = baseScale * gScale;
         const g = document.createElementNS(NS, 'g');
         const parts = [[0,0,18,12],[14,-6,16,10],[28,-2,14,9],[40,4,12,8],[10,8,15,11],[26,10,13,7]];
         parts.forEach(([px, py, rx, ry]) => {
