@@ -676,88 +676,89 @@ function openWebApp(url) {
 // =====================================================================
 // ГРАФИКИ ТЕМПЕРАТУР
 // =====================================================================
-const HA_URL    = 'http://192.168.1.90:8123';
-const HA_TOKEN  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI5ZjE1MDRkMDM1YWU0NTgwYTcxMzFkNmIwZGRhYmJhMyIsImlhdCI6MTc3NDQ1MjMwNywiZXhwIjoyMDg5ODEyMzA3fQ.3M7k5Q-MS65PFTQxRWWf4ThGwEwRQ9tC6cb5UFc0qdg';
+const HA_URL    = 'http://192.168.1.90';
+const HA_TOKEN  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmNGI5OWQzMjg5MWQ0ODgwYTEyNTYxYzczYWFmMzA4YSIsImlhdCI6MTc5NTg2MzU3NCwiZXhwIjoyMTExMjIzNTc0fQ.0yNFj_4ygMZYL-fqgFuqwFYBV8XJ8V52HoHhN3IO7LY';
 
-const CHART_CFG = {
+// Описание датчиков. Чтобы добавить новый график — просто добавьте запись сюда.
+const CHART_DEFS = {
     street: {
-        entity:      'sensor.temperature_158d00052dc128',
-        canvasId:    'streetTempChart',
-        loadingId:   'chart_loading',
-        errorId:     'chart_error',
-        lastValId:   'chart_last_val',
-        overlayId:   'chart-overlay',
-        color:       '#58a6ff',
-        colorBg:     'rgba(88,166,255,0.08)',
-        maxHours:    168,
-        defaultHours:6,
+        label:  'Улица — температура',
+        entity: 'sensor.temperature_158d00052dc128',
+        color:  '#58a6ff', colorBg: 'rgba(88,166,255,0.08)', unit: '°C',
     },
     boiler: {
-        entity:      'sensor.kontroller_kotla_temperatura_kotla',
-        canvasId:    'boilerTempChart',
-        loadingId:   'boiler_chart_loading',
-        errorId:     'boiler_chart_error',
-        lastValId:   'boiler_chart_last_val',
-        overlayId:   'boiler-chart-overlay',
-        color:       '#e3b341',
-        colorBg:     'rgba(227,179,65,0.08)',
-        maxHours:    168,
-        defaultHours:6,
+        label:  'Котёл — температура',
+        entity: 'sensor.kladovka_kontroller_kotla_temperatura_kotla',
+        color:  '#e3b341', colorBg: 'rgba(227,179,65,0.08)', unit: '°C',
     },
     pressure: {
-        entity:      'sensor.pressure_158d00052dc128',
-        canvasId:    'pressureChart',
-        loadingId:   'pressure_chart_loading',
-        errorId:     'pressure_chart_error',
-        lastValId:   'pressure_chart_last_val',
-        overlayId:   'pressure-chart-overlay',
-        color:       '#a5d6ff',
-        colorBg:     'rgba(165,214,255,0.07)',
-        maxHours:    168,
-        defaultHours:6,
-        unit:        ' мм',
-    }
+        label:  'Улица — давление',
+        entity: 'sensor.pressure_158d00052dc128',
+        color:  '#a5d6ff', colorBg: 'rgba(165,214,255,0.07)', unit: ' мм',
+    },
 };
+// Общие элементы: один canvas и один оверлей для всех графиков
+const CHART_SHARED = {
+    canvasId:  'universalChart',
+    overlayId: 'chart-overlay',
+    loadingId: 'chart_loading',
+    errorId:   'chart_error',
+    lastValId: 'chart_last_val',
+    maxHours:  168,
+    defaultHours: 6,
+};
+const CHART_CFG = Object.fromEntries(
+    Object.entries(CHART_DEFS).map(([k, v]) => [k, { ...CHART_SHARED, ...v }])
+);
 
 const CHART_MIN_VIEW = 10;
 
-const chartState = {
-    street:   { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
-                loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 },
-    boiler:   { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
-                loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 },
-    pressure: { chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
-                loadedFrom: null, loadedTo: null, loading: false, currentHours: 6 }
-};
+const chartState = Object.fromEntries(Object.keys(CHART_CFG).map(k => [k, {
+    chart: null, allTs: [], allVals: [], viewStart: 0, viewSize: 0,
+    loadedFrom: null, loadedTo: null, loading: false, currentHours: 6,
+}]));
+
 let _activeTouchKey = null;
 let _touchState     = null;
+let _activeChartKey = null;   // какой датчик сейчас показан
+let _activeHours    = 6;      // выбранный период (1ч…7д), сохраняется при смене датчика
 
-function openChartOverlay() {
-    _openChart('street');
+function openChartOverlay()         { _openChart('street'); }
+function openBoilerChartOverlay()   { _openChart('boiler'); }
+function openPressureChartOverlay() { _openChart('pressure'); }
+
+function _fillChartSelect() {
+    const sel = document.getElementById('chart_sensor_select');
+    if (!sel || sel.options.length) return;
+    Object.keys(CHART_CFG).forEach(k => {
+        const o = document.createElement('option');
+        o.value = k;
+        o.textContent = CHART_CFG[k].label;
+        sel.appendChild(o);
+    });
 }
-function openBoilerChartOverlay() {
-    _openChart('boiler');
-}
-function openPressureChartOverlay() {
-    _openChart('pressure');
-}
+
 function _openChart(key) {
-    const cfg = CHART_CFG[key];
-    const ov  = document.getElementById(cfg.overlayId);
-    if (!ov) return;
+    const ov = document.getElementById(CHART_SHARED.overlayId);
+    if (!ov || !CHART_CFG[key]) return;
+    if (!document.getElementById(CHART_SHARED.canvasId) || !document.getElementById('chart_sensor_select')) {
+        alert('Графики не открылись: файлы index.html и script.js не совпадают. Замените оба файла на новые из одного комплекта и обновите страницу (очистите кэш).');
+        return;
+    }
+    _fillChartSelect();
+    if (_activeChartKey && _activeChartKey !== key) _releaseChart(_activeChartKey);
+    _activeChartKey = key;
+    const sel = document.getElementById('chart_sensor_select');
+    if (sel) sel.value = key;
     ov.style.display = 'flex';
     setTimeout(() => ov.classList.add('active'), 10);
-    chartSetPeriod(key, cfg.defaultHours,
-        ov.querySelector('.chart-period-active') ||
-        ov.querySelectorAll('.chart-period-btn')[2]);
+    chartSetPeriod(key, CHART_CFG[key].defaultHours,
+        ov.querySelector(`.chart-period-btn[data-h="${CHART_CFG[key].defaultHours}"]`));
 }
 
-function closeChartOverlay(key) {
-    const cfg = CHART_CFG[key];
-    const ov  = document.getElementById(cfg.overlayId);
-    if (!ov) return;
-    ov.classList.remove('active');
-    setTimeout(() => { ov.style.display = 'none'; }, 500);
+// Освобождаем график: уничтожаем Chart, снимаем touch и очищаем данные
+function _releaseChart(key) {
+    if (!key) return;
     const s = chartState[key];
     if (s.chart) { s.chart.destroy(); s.chart = null; }
     _chartDetachTouch(key);
@@ -765,12 +766,34 @@ function closeChartOverlay(key) {
     s.loadedFrom = null; s.loadedTo = null;
 }
 
+// Переключение датчика внутри открытого оверлея (период сохраняется)
+function switchChartSensor(key) {
+    if (!CHART_CFG[key] || key === _activeChartKey) return;
+    _releaseChart(_activeChartKey);
+    _activeChartKey = key;
+    chartSetPeriod(key, _activeHours,
+        document.querySelector(`#${CHART_SHARED.overlayId} .chart-period-btn[data-h="${_activeHours}"]`));
+}
+
+function closeChartOverlay() {
+    const key = _activeChartKey;
+    const ov  = document.getElementById(CHART_SHARED.overlayId);
+    if (!ov) return;
+    ov.classList.remove('active');
+    setTimeout(() => { ov.style.display = 'none'; }, 500);
+    _releaseChart(key);
+    _activeChartKey = null;
+}
+
 function chartSetPeriod(key, hours, btn) {
-    const ov = document.getElementById(CHART_CFG[key].overlayId);
+    key = key || _activeChartKey;
+    if (!key) return;
+    const ov = document.getElementById(CHART_SHARED.overlayId);
     ov.querySelectorAll('.chart-period-btn').forEach(b => b.classList.remove('chart-period-active'));
     if (btn) btn.classList.add('chart-period-active');
-    chartState[key].currentHours = hours;
+    _activeHours = hours;
     const s = chartState[key];
+    s.currentHours = hours;
     s.allTs = []; s.allVals = [];
     s.loadedFrom = null; s.loadedTo = null;
     _chartLoad(key, Date.now() - hours * 3600000, Date.now(), true);
@@ -824,12 +847,13 @@ async function _chartLoad(key, fromMs, toMs, resetView) {
             }
         }
 
-        const lastVal = [...s.allVals].reverse().find(v => v !== null);
-        const lastEl  = document.getElementById(cfg.lastValId);
-        if (lastEl && lastVal !== undefined) lastEl.innerText = lastVal.toFixed(1) + (cfg.unit || '°C');
-
-        _chartRender(key);
-        if (resetView) _chartAttachTouch(key);
+        if (key === _activeChartKey) {
+            const lastVal = [...s.allVals].reverse().find(v => v !== null);
+            const lastEl  = document.getElementById(cfg.lastValId);
+            if (lastEl && lastVal !== undefined) lastEl.innerText = lastVal.toFixed(1) + (cfg.unit || '°C');
+            _chartRender(key);
+            if (resetView) _chartAttachTouch(key);
+        }
 
     } catch (err) {
         console.error(`Chart [${key}] error:`, err);
@@ -917,7 +941,7 @@ function _chartAttachTouch(key) {
 }
 function _chartDetachTouch(key) {
     const id = key ? CHART_CFG[key]?.canvasId : null;
-    ['streetTempChart','boilerTempChart','pressureChart'].forEach(cid => {
+    ['universalChart'].forEach(cid => {
         if (!id || cid === id) {
             const c = document.getElementById(cid);
             if (c) {
